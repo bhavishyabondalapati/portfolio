@@ -58,6 +58,9 @@ export const person = {
     "MS Computer Science student at Northeastern. I build machine learning systems that check their own work, and the backends that serve them.",
   lookingFor: "Looking for ML systems, backend and full-stack roles.",
   location: "Boston, MA",
+  // The one sentence under the name on the first screen.
+  heroLine: "ML systems and backend engineer. MS Computer Science at Northeastern, GPA 3.9, graduating May 2027.",
+  heroAction: { label: "See the work", href: "#projects" },
 };
 
 export const education = [
@@ -133,7 +136,7 @@ export const featured: FeaturedProject[] = [
     links: [{ label: "Code on GitHub", href: `${GH}/aerial-change-intelligence` }],
     media: [
       {
-        src: "/work/aerial-godavari-ndvi.png",
+        src: "/work/aerial-godavari-ndvi.webp",
         alt: "Godavari delta from Sentinel-2: vegetation index before, after, and the flagged loss areas",
         kind: "image",
       },
@@ -185,7 +188,7 @@ export const featured: FeaturedProject[] = [
     media: [
       {
         src: "/work/robot-arm-policy.mp4",
-        poster: "/work/robot-arm-scene.png",
+        poster: "/work/robot-arm-scene.webp",
         alt: "The simulated SO-101 arm picking up a cube and placing it on a target, driven by the learned policy",
         kind: "video",
       },
@@ -331,4 +334,24 @@ export const contact = {
     { label: "GitHub", href: GH },
   ] satisfies Link[],
   // Phone number is deliberately not included.
+};
+
+// The guided tour: what the kitten says in each scene. Plain words, no emoji.
+export const tour = {
+  skipLabel: "Skip the tour",
+  resumeLabel: "Take the tour",
+  kittenLabel: "The house cat. Press to see it swing its sword.",
+  lines: {
+    hero: "Hi. I'm the house cat. Scroll and I'll show you around.",
+    swing: ["En garde.", "Code review, sword edition.", "I guard the repos."],
+    experience: "Two internships. Six AI agents. Zero naps.",
+    projects: "Each room is a project. Every number in here was measured.",
+    otherWork: "The ledger. Smaller builds, same habit: test everything.",
+    about: "Golden hour. Good time for the backstory.",
+    contact: "That's the tour. Bhavishya answers email faster than I answer to my name.",
+  },
+  // Scene descriptions for screen readers and the fast version's still images.
+  sceneAlt: {
+    hero: "The front of a Chettinad house in morning light: a raised veranda with turned teak pillars, a carved teak door, and the name bhavishya standing in the front yard.",
+  },
 };

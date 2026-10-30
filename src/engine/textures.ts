@@ -1,0 +1,575 @@
+// Every surface in the house is painted here on a canvas at load time: no image downloads.
+import { canvas, ctx2d, fbmCanvas, mottle, mulberry32, normalFromHeight, TAU } from "./util";
+
+export type Surface = { map: HTMLCanvasElement; normal?: HTMLCanvasElement; rough?: HTMLCanvasElement };
+
+/** Lime-white egg plaster: chalky, slightly uneven, a little warmer near the floor. */
+export function plaster(seed = 11): Surface {
+  const W = 512;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  x.fillStyle = "#ece8de";
+  x.fillRect(0, 0, W, W);
+  mottle(x, W, W, seed, 0.18, 3);
+  mottle(x, W, W, seed + 5, 0.08, 24);
+  const h = fbmCanvas(256, 256, seed + 9, 5, 6, 6, 0.6);
+  return { map: c, normal: normalFromHeight(h, 0.6) };
+}
+
+/** Burma teak: long grain, deep brown, oiled. */
+export function teak(seed = 21, base = "#5b321b"): Surface {
+  const W = 512;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  x.fillStyle = base;
+  x.fillRect(0, 0, W, W);
+  x.save();
+  x.globalCompositeOperation = "overlay";
+  x.globalAlpha = 0.55;
+  // narrow, tall noise cells give grain that runs along v (up a pillar, down a door)
+  x.drawImage(fbmCanvas(W, W, seed, 6, 24, 2, 1.1), 0, 0);
+  x.restore();
+  const r = mulberry32(seed);
+  for (let i = 0; i < 90; i++) {
+    x.fillStyle = r() > 0.5 ? "rgba(20,8,2,.16)" : "rgba(160,95,50,.10)";
+    x.fillRect(r() * W, 0, 0.6 + r() * 2.2, W);
+  }
+  const h = fbmCanvas(256, 256, seed + 3, 5, 18, 2, 1);
+  return { map: c, normal: normalFromHeight(h, 1.2) };
+}
+
+/** Polished red oxide floor: deep red, glossy, faint trowel marks. */
+export function redOxide(seed = 31): Surface {
+  const W = 512;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  x.fillStyle = "#8a2f22";
+  x.fillRect(0, 0, W, W);
+  mottle(x, W, W, seed, 0.28, 3);
+  const rough = canvas(256, 256);
+  const rx = ctx2d(rough);
+  rx.fillStyle = "#3a3a3a";
+  rx.fillRect(0, 0, 256, 256);
+  rx.globalAlpha = 0.7;
+  rx.globalCompositeOperation = "lighten";
+  rx.drawImage(fbmCanvas(256, 256, seed + 2, 4, 3, 3, 1.3), 0, 0);
+  return { map: c, rough };
+}
+
+/** Packed earth of the front yard, swept smooth. */
+export function earth(seed = 41): Surface {
+  const W = 1024;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  x.fillStyle = "#b98a62";
+  x.fillRect(0, 0, W, W);
+  mottle(x, W, W, seed, 0.35, 4);
+  mottle(x, W, W, seed + 1, 0.12, 64);
+  const r = mulberry32(seed);
+  for (let i = 0; i < 900; i++) {
+    const s = 0.8 + r() * 2.4;
+    x.fillStyle = r() > 0.5 ? "rgba(70,40,20,.28)" : "rgba(240,215,180,.30)";
+    x.beginPath();
+    x.arc(r() * W, r() * W, s, 0, TAU);
+    x.fill();
+  }
+  // broom strokes
+  x.strokeStyle = "rgba(90,55,30,.07)";
+  for (let i = 0; i < 260; i++) {
+    const y = r() * W;
+    x.lineWidth = 1 + r() * 2;
+    x.beginPath();
+    x.moveTo(r() * W, y);
+    x.quadraticCurveTo(r() * W, y + (r() - 0.5) * 40, r() * W, y + (r() - 0.5) * 20);
+    x.stroke();
+  }
+  const h = fbmCanvas(256, 256, seed + 4, 5, 8, 8, 1);
+  return { map: c, normal: normalFromHeight(h, 1.4) };
+}
+
+/** Mangalore clay tiles in overlapping rows (u runs along the ridge, v down the slope). */
+export function roofTiles(seed = 51): Surface {
+  const W = 512;
+  const H = 512;
+  const c = canvas(W, H);
+  const x = ctx2d(c);
+  const hc = canvas(W, H);
+  const hx = ctx2d(hc);
+  x.fillStyle = "#9b4a2c";
+  x.fillRect(0, 0, W, H);
+  hx.fillStyle = "#606060";
+  hx.fillRect(0, 0, W, H);
+  const r = mulberry32(seed);
+  const rows = 8;
+  const cols = 8;
+  const rh = H / rows;
+  const cw = W / cols;
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const t = 0.82 + r() * 0.3;
+      const off = j % 2 ? cw / 2 : 0;
+      const px = i * cw + off;
+      x.fillStyle = `rgb(${(170 * t) | 0},${(82 * t) | 0},${(48 * t) | 0})`;
+      x.fillRect(px + 2, j * rh + 2, cw - 4, rh - 3);
+      x.fillStyle = "rgba(255,210,170,.10)";
+      x.fillRect(px + 2, j * rh + 2, cw - 4, rh * 0.25);
+      x.fillStyle = "rgba(40,10,4,.35)";
+      x.fillRect(px + 2, j * rh + rh - 6, cw - 4, 4);
+      hx.fillStyle = "#c8c8c8";
+      hx.fillRect(px + 3, j * rh + 3, cw - 6, rh - 8);
+      if (off) {
+        x.fillRect(px - W + 2, j * rh + 2, cw - 4, rh - 3);
+      }
+    }
+  }
+  mottle(x, W, H, seed + 2, 0.3, 4);
+  // lichen and soot
+  x.save();
+  x.globalAlpha = 0.18;
+  x.globalCompositeOperation = "multiply";
+  x.drawImage(fbmCanvas(256, 256, seed + 7, 4, 3, 3, 1.4), 0, 0, W, H);
+  x.restore();
+  return { map: c, normal: normalFromHeight(hc, 2.2) };
+}
+
+/**
+ * Carved door leaf: a teak grid of recessed panels, each with a lotus rosette,
+ * and brass studs where the rails cross. Height map drives the normal map.
+ */
+export function doorLeaf(seed = 61): Surface {
+  const W = 512;
+  const H = 1024;
+  const t = teak(seed, "#4e2a16");
+  const c = canvas(W, H);
+  const x = ctx2d(c);
+  x.drawImage(t.map, 0, 0, W, H);
+  const hc = canvas(W, H);
+  const hx = ctx2d(hc);
+  hx.fillStyle = "#a0a0a0";
+  hx.fillRect(0, 0, W, H);
+
+  const cols = 2;
+  const rows = 4;
+  const rail = 46;
+  const pw = (W - rail * (cols + 1)) / cols;
+  const ph = (H - rail * (rows + 1)) / rows;
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const px = rail + i * (pw + rail);
+      const py = rail + j * (ph + rail);
+      // recess
+      x.fillStyle = "rgba(15,5,0,.30)";
+      x.fillRect(px, py, pw, ph);
+      x.fillStyle = "rgba(255,190,130,.06)";
+      x.fillRect(px + 10, py + 10, pw - 20, ph - 20);
+      hx.fillStyle = "#555";
+      hx.fillRect(px, py, pw, ph);
+      hx.fillStyle = "#6a6a6a";
+      hx.fillRect(px + 10, py + 10, pw - 20, ph - 20);
+      rosette(x, hx, px + pw / 2, py + ph / 2, Math.min(pw, ph) * 0.36);
+    }
+  }
+  // brass studs on every rail crossing and along the rails
+  for (let j = 0; j <= rows; j++) {
+    for (let i = 0; i <= cols * 4; i++) {
+      const sx = rail / 2 + (i * (W - rail)) / (cols * 4);
+      const sy = rail / 2 + j * (ph + rail);
+      stud(x, hx, sx, sy, i % 4 === 0 ? 11 : 6);
+    }
+  }
+  return { map: c, normal: normalFromHeight(hc, 3.2) };
+}
+
+function rosette(x: CanvasRenderingContext2D, hx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  const petals = 8;
+  for (let ring = 0; ring < 2; ring++) {
+    const rr = ring === 0 ? r : r * 0.6;
+    for (let k = 0; k < petals; k++) {
+      const a = (k / petals) * TAU + (ring ? Math.PI / petals : 0);
+      x.save();
+      hx.save();
+      x.translate(cx, cy);
+      hx.translate(cx, cy);
+      x.rotate(a);
+      hx.rotate(a);
+      const path = new Path2D();
+      path.moveTo(0, 0);
+      path.quadraticCurveTo(rr * 0.42, -rr * 0.5, 0, -rr);
+      path.quadraticCurveTo(-rr * 0.42, -rr * 0.5, 0, 0);
+      x.fillStyle = ring ? "rgba(120,70,35,.55)" : "rgba(95,52,25,.6)";
+      x.fill(path);
+      x.strokeStyle = "rgba(20,6,0,.45)";
+      x.lineWidth = 2;
+      x.stroke(path);
+      hx.fillStyle = ring ? "#d8d8d8" : "#bdbdbd";
+      hx.fill(path);
+      x.restore();
+      hx.restore();
+    }
+  }
+  stud(x, hx, cx, cy, r * 0.18);
+}
+
+function stud(x: CanvasRenderingContext2D, hx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  x.fillStyle = "#b48a3c";
+  x.beginPath();
+  x.arc(cx, cy, r, 0, TAU);
+  x.fill();
+  x.fillStyle = "rgba(255,235,170,.55)";
+  x.beginPath();
+  x.arc(cx - r * 0.3, cy - r * 0.3, r * 0.35, 0, TAU);
+  x.fill();
+  hx.fillStyle = "#ffffff";
+  hx.beginPath();
+  hx.arc(cx, cy, r, 0, TAU);
+  hx.fill();
+}
+
+/** Carved lintel frieze: a running vine scroll with a lotus at the centre. */
+export function lintel(seed = 71): Surface {
+  const W = 1024;
+  const H = 256;
+  const t = teak(seed, "#53301a");
+  const c = canvas(W, H);
+  const x = ctx2d(c);
+  x.drawImage(t.map, 0, 0, W, H);
+  const hc = canvas(W, H);
+  const hx = ctx2d(hc);
+  hx.fillStyle = "#808080";
+  hx.fillRect(0, 0, W, H);
+  // border mouldings
+  for (const y of [14, H - 24]) {
+    x.fillStyle = "rgba(255,200,140,.10)";
+    x.fillRect(0, y, W, 10);
+    hx.fillStyle = "#d0d0d0";
+    hx.fillRect(0, y, W, 10);
+  }
+  // vine scroll
+  x.strokeStyle = "rgba(30,10,2,.55)";
+  hx.strokeStyle = "#e0e0e0";
+  x.lineWidth = 7;
+  hx.lineWidth = 9;
+  const wave = (px: number) => H / 2 + Math.sin(px / 52) * 40;
+  for (const ctx of [x, hx]) {
+    ctx.beginPath();
+    for (let px = 0; px <= W; px += 4) ctx.lineTo(px, wave(px));
+    ctx.stroke();
+  }
+  const r = mulberry32(seed);
+  for (let px = 26; px < W; px += 52) {
+    const up = Math.floor(px / 52) % 2 === 0 ? -1 : 1;
+    const cy = wave(px) + up * 30;
+    for (const [ctx, col] of [
+      [x, "rgba(110,60,28,.85)"],
+      [hx, "#eeeeee"],
+    ] as const) {
+      ctx.fillStyle = col;
+      ctx.beginPath();
+      ctx.ellipse(px, cy, 16 + r() * 4, 9, up * 0.6, 0, TAU);
+      ctx.fill();
+    }
+  }
+  rosette(x, hx, W / 2, H / 2, 70);
+  return { map: c, normal: normalFromHeight(hc, 3) };
+}
+
+/** A pulli kolam in rice flour on a freshly swept patch: a dot grid with petal loops. */
+export function kolam(): HTMLCanvasElement {
+  const W = 1024;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  x.clearRect(0, 0, W, W);
+  // the swept, darker wet patch
+  x.fillStyle = "rgba(90,48,26,.55)";
+  x.beginPath();
+  x.ellipse(W / 2, W / 2, W * 0.48, W * 0.48, 0, 0, TAU);
+  x.fill();
+  x.strokeStyle = "rgba(250,246,236,.95)";
+  x.fillStyle = "rgba(250,246,236,.95)";
+  x.lineCap = "round";
+  x.lineWidth = 7;
+  const n = 7;
+  const step = W / (n + 2);
+  const o = step * 1.5;
+  // dots
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      const d = Math.abs(i - (n - 1) / 2) + Math.abs(j - (n - 1) / 2);
+      if (d > (n - 1) / 2 + 0.01) continue;
+      x.beginPath();
+      x.arc(o + i * step, o + j * step, 6, 0, TAU);
+      x.fill();
+      // a petal loop around each dot, alternating orientation
+      const a = (i + j) % 2 ? Math.PI / 4 : -Math.PI / 4;
+      x.save();
+      x.translate(o + i * step, o + j * step);
+      x.rotate(a);
+      x.beginPath();
+      x.ellipse(0, 0, step * 0.46, step * 0.22, 0, 0, TAU);
+      x.stroke();
+      x.restore();
+    }
+  }
+  // outer lotus ring
+  const cx = W / 2;
+  const cy = W / 2;
+  for (let k = 0; k < 16; k++) {
+    const a = (k / 16) * TAU;
+    x.save();
+    x.translate(cx + Math.cos(a) * W * 0.4, cy + Math.sin(a) * W * 0.4);
+    x.rotate(a + Math.PI / 2);
+    x.beginPath();
+    x.moveTo(0, 0);
+    x.quadraticCurveTo(step * 0.3, -step * 0.35, 0, -step * 0.62);
+    x.quadraticCurveTo(-step * 0.3, -step * 0.35, 0, 0);
+    x.stroke();
+    x.restore();
+  }
+  x.beginPath();
+  x.arc(cx, cy, W * 0.4, 0, TAU);
+  x.stroke();
+  return c;
+}
+
+/** One jasmine petal: creamy white with a faint yellow heart. */
+export function petal(): HTMLCanvasElement {
+  const W = 64;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  x.fillStyle = "#fbf8ef";
+  x.beginPath();
+  x.moveTo(W / 2, W * 0.95);
+  x.bezierCurveTo(W * 0.05, W * 0.6, W * 0.2, W * 0.06, W / 2, W * 0.04);
+  x.bezierCurveTo(W * 0.8, W * 0.06, W * 0.95, W * 0.6, W / 2, W * 0.95);
+  x.fill();
+  x.fillStyle = "rgba(236,214,140,.55)";
+  x.beginPath();
+  x.ellipse(W / 2, W * 0.86, W * 0.08, W * 0.12, 0, 0, TAU);
+  x.fill();
+  return c;
+}
+
+/**
+ * The jasmine creeper cut-out that hangs into the top of the frame:
+ * stems falling from the top edge, dark leaves, white star flowers.
+ */
+export function creeper(seed: number, w = 1024, h = 1024): HTMLCanvasElement {
+  const c = canvas(w, h);
+  const x = ctx2d(c);
+  const r = mulberry32(seed);
+  const strands = 9;
+  for (let s = 0; s < strands; s++) {
+    let px = (s / strands) * w + r() * 60;
+    let py = -10;
+    const len = h * (0.35 + r() * 0.6);
+    x.strokeStyle = "#3b4a26";
+    x.lineWidth = 3 + r() * 2;
+    x.beginPath();
+    x.moveTo(px, py);
+    const pts: [number, number][] = [];
+    while (py < len) {
+      px += (r() - 0.5) * 26;
+      py += 14 + r() * 10;
+      x.lineTo(px, py);
+      pts.push([px, py]);
+    }
+    x.stroke();
+    for (const [lx, ly] of pts) {
+      if (r() > 0.25) leaf(x, lx, ly, 18 + r() * 16, (r() - 0.5) * 2.4 + (r() > 0.5 ? 0.9 : -0.9), r);
+      if (r() > 0.72) flower(x, lx + (r() - 0.5) * 30, ly + (r() - 0.5) * 20, 9 + r() * 6);
+    }
+  }
+  return c;
+}
+
+function leaf(x: CanvasRenderingContext2D, px: number, py: number, s: number, a: number, r: () => number) {
+  x.save();
+  x.translate(px, py);
+  x.rotate(a);
+  const g = 50 + r() * 30;
+  x.fillStyle = `rgb(${(g * 0.55) | 0},${(g * 1.05) | 0},${(g * 0.45) | 0})`;
+  x.beginPath();
+  x.moveTo(0, 0);
+  x.quadraticCurveTo(s * 0.45, s * 0.25, 0, s);
+  x.quadraticCurveTo(-s * 0.45, s * 0.25, 0, 0);
+  x.fill();
+  x.fillStyle = "rgba(200,230,150,.12)";
+  x.fillRect(-0.5, 0, 1, s * 0.9);
+  x.restore();
+}
+
+function flower(x: CanvasRenderingContext2D, px: number, py: number, s: number) {
+  x.fillStyle = "#fdfbf3";
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * TAU;
+    x.beginPath();
+    x.ellipse(px + Math.cos(a) * s * 0.55, py + Math.sin(a) * s * 0.55, s * 0.5, s * 0.24, a, 0, TAU);
+    x.fill();
+  }
+  x.fillStyle = "#e9d48a";
+  x.beginPath();
+  x.arc(px, py, s * 0.18, 0, TAU);
+  x.fill();
+}
+
+/**
+ * A low border of marigolds and tulsi along the yard: a ragged band of small leaves
+ * with orange and yellow flower heads. It hides the feet of the giant letters, like the grass in Kage.
+ */
+export function flowerBand(seed: number, w = 2048, h = 128, leafSize = 9): HTMLCanvasElement {
+  const c = canvas(w, h);
+  const x = ctx2d(c);
+  const r = mulberry32(seed);
+  const n = Math.round((w * h) / (leafSize * leafSize * 1.6));
+  for (let i = 0; i < n; i++) {
+    const px = r() * w;
+    const top = h * (0.18 + 0.4 * (0.5 + 0.5 * Math.sin(px / 41 + seed) * Math.sin(px / 13)));
+    const py = top + r() * (h - top);
+    leaf(x, px, py, leafSize * (0.8 + r() * 0.9), r() * TAU, r);
+  }
+  for (let i = 0; i < w / 14; i++) {
+    const px = r() * w;
+    const py = h * (0.22 + r() * 0.45);
+    const s = leafSize * (0.35 + r() * 0.3);
+    x.fillStyle = r() > 0.45 ? "#e0761f" : "#e9b42c";
+    for (let k = 0; k < 7; k++) {
+      x.beginPath();
+      x.arc(px + Math.cos(k) * s * 0.5, py + Math.sin(k) * s * 0.5, s * 0.55, 0, TAU);
+      x.fill();
+    }
+  }
+  return c;
+}
+
+/** Distant coconut palm silhouette against the sky. */
+export function palm(seed: number, w = 512, h = 1024): HTMLCanvasElement {
+  const c = canvas(w, h);
+  const x = ctx2d(c);
+  const r = mulberry32(seed);
+  const lean = (r() - 0.5) * 0.25;
+  const topX = w / 2 + lean * h;
+  const topY = h * 0.18;
+  x.strokeStyle = "#6b7a6a";
+  x.lineWidth = 12;
+  x.lineCap = "round";
+  x.beginPath();
+  x.moveTo(w / 2, h);
+  x.quadraticCurveTo(w / 2 + lean * h * 0.2, h * 0.55, topX, topY);
+  x.stroke();
+  x.strokeStyle = "#5d6e5c";
+  for (let k = 0; k < 11; k++) {
+    const a = -Math.PI / 2 + ((k / 10) - 0.5) * Math.PI * 1.7 + (r() - 0.5) * 0.2;
+    const len = w * (0.32 + r() * 0.14);
+    const ex = topX + Math.cos(a) * len;
+    const ey = topY + Math.sin(a) * len * 0.55 + len * 0.35;
+    x.lineWidth = 5;
+    x.beginPath();
+    x.moveTo(topX, topY);
+    x.quadraticCurveTo(topX + Math.cos(a) * len * 0.6, topY + Math.sin(a) * len * 0.5 - 20, ex, ey);
+    x.stroke();
+    // leaflets
+    x.lineWidth = 2;
+    for (let q = 0.2; q < 1; q += 0.07) {
+      const qx = topX + (ex - topX) * q;
+      const qy = topY + (ey - topY) * q - Math.sin(q * Math.PI) * 18;
+      x.beginPath();
+      x.moveTo(qx, qy);
+      x.lineTo(qx + (r() - 0.5) * 10, qy + 22 * (1 - q * 0.4));
+      x.stroke();
+    }
+  }
+  return c;
+}
+
+/** Soft radial glow used for haze slabs (inside the 3D scene only). */
+export function glow(inner: string, outer: string): HTMLCanvasElement {
+  const W = 256;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  const g = x.createRadialGradient(W / 2, W / 2, 0, W / 2, W / 2, W / 2);
+  g.addColorStop(0, inner);
+  g.addColorStop(0.5, outer);
+  g.addColorStop(1, "rgba(0,0,0,0)");
+  x.fillStyle = g;
+  x.fillRect(0, 0, W, W);
+  return c;
+}
+
+/** Coloured-glass fanlight for the arched windows: sectors of red, green and yellow. */
+export function fanlight(seed: number): HTMLCanvasElement {
+  const W = 256;
+  const c = canvas(W, W / 2);
+  const x = ctx2d(c);
+  const cols = ["#b8322a", "#2f7a52", "#d9a62e", "#2f7a52", "#b8322a", "#d9a62e", "#2f7a52"];
+  const n = cols.length;
+  for (let k = 0; k < n; k++) {
+    x.fillStyle = cols[(k + seed) % n];
+    x.beginPath();
+    x.moveTo(W / 2, W / 2);
+    x.arc(W / 2, W / 2, W / 2, Math.PI + (k / n) * Math.PI, Math.PI + ((k + 1) / n) * Math.PI);
+    x.closePath();
+    x.fill();
+  }
+  x.strokeStyle = "#2a1408";
+  x.lineWidth = 5;
+  for (let k = 0; k <= n; k++) {
+    const a = Math.PI + (k / n) * Math.PI;
+    x.beginPath();
+    x.moveTo(W / 2, W / 2);
+    x.lineTo(W / 2 + Math.cos(a) * W, W / 2 + Math.sin(a) * W);
+    x.stroke();
+  }
+  x.beginPath();
+  x.arc(W / 2, W / 2, W * 0.16, Math.PI, TAU);
+  x.fillStyle = "#e9d6a0";
+  x.fill();
+  return c;
+}
+
+/** Wooden louvred shutter for the lower half of a window. */
+export function shutter(): HTMLCanvasElement {
+  const W = 128;
+  const H = 256;
+  const c = canvas(W, H);
+  const x = ctx2d(c);
+  x.fillStyle = "#2f5a45";
+  x.fillRect(0, 0, W, H);
+  for (let y = 10; y < H - 10; y += 12) {
+    x.fillStyle = "rgba(0,0,0,.35)";
+    x.fillRect(10, y + 8, W - 20, 3);
+    x.fillStyle = "rgba(255,255,255,.08)";
+    x.fillRect(10, y, W - 20, 2);
+  }
+  x.strokeStyle = "#1e3a2c";
+  x.lineWidth = 8;
+  x.strokeRect(4, 4, W - 8, H - 8);
+  x.beginPath();
+  x.moveTo(W / 2, 0);
+  x.lineTo(W / 2, H);
+  x.stroke();
+  return c;
+}
+
+/** Cape cloth for the kitten: lime-white with a red oxide and ochre silk border. */
+export function capeCloth(): HTMLCanvasElement {
+  const W = 256;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  x.fillStyle = "#f1eee4";
+  x.fillRect(0, 0, W, W);
+  mottle(x, W, W, 5, 0.08, 8);
+  x.fillStyle = "#8a2f22";
+  x.fillRect(0, W - 34, W, 34);
+  x.fillStyle = "#d19a2a";
+  x.fillRect(0, W - 40, W, 6);
+  for (let i = 0; i < W; i += 16) {
+    x.fillStyle = "#d19a2a";
+    x.beginPath();
+    x.moveTo(i, W - 6);
+    x.lineTo(i + 8, W - 22);
+    x.lineTo(i + 16, W - 6);
+    x.fill();
+  }
+  return c;
+}
+
