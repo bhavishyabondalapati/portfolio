@@ -124,7 +124,7 @@ const dusk: Mood = {
   beamColor: 0xffb070,
   grade: { shadows: [0.9, 0.97, 1.1], highlights: [1.08, 0.99, 0.88], saturation: 1.0, contrast: 1.06 },
   bloom: { threshold: 0.6, intensity: 1.3 },
-  key: { color: 0xffb46e, intensity: 6 },
+  key: { color: 0xffb46e, intensity: 4 },
   sprig: 0x4a4a58,
   letterGlow: 0.16,
 };
@@ -141,6 +141,9 @@ const nightInside: Mood = {
   exposure: 1.35,
 };
 
+// out the back after the corridor: the day has gone; the lamps light one by one as you walk in
+const duskBack: Mood = { ...dusk, lamps: 0, fogDensity: 0.012, hemiSky: 0x4a66a4, hemiIntensity: 0.75, sunIntensity: 0.8, horizon: 0xd9784a };
+
 export const MOODS: Record<LightMode, Mood> = { golden, dusk };
 
 /** Mood keyframes by camera depth (z): the yard, the courtyard, the corridor. */
@@ -150,10 +153,14 @@ const PATHS: Record<LightMode, [number, Mood][]> = {
     [-7, courtyardDay],
     [-22, courtyardDay],
     [-27, corridorDay],
+    [-46, corridorDay],
+    [-52, duskBack],
   ],
   dusk: [
     [2, dusk],
     [-7, nightInside],
+    [-50, nightInside],
+    [-55, { ...dusk, fogDensity: 0.012 }],
   ],
 };
 

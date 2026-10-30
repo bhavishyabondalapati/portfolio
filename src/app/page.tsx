@@ -16,6 +16,7 @@ export default function Home() {
         <nav aria-label="Sections">
           <a href="#experience">Experience</a>
           <a href="#projects">Projects</a>
+          <a href="#other-work">Other work</a>
           <a href="#about">About</a>
           <a href="#contact">Contact</a>
         </nav>

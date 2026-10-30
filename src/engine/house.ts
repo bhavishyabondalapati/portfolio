@@ -28,20 +28,35 @@ export type House = {
  * A lamp is a glowing flame or bulb plus a position. Real lights come from a small pool the renderer
  * moves to whichever lamps are nearest the camera, so the number of lights in the shaders stays fixed.
  */
-export type Lamp = { flame: THREE.Mesh; pos: THREE.Vector3; base: number; color: number; id?: string; boost?: number };
+export type Lamp = {
+  flame: THREE.Mesh;
+  pos: THREE.Vector3;
+  base: number;
+  color: number;
+  id?: string;
+  boost?: number;
+  /** Journey position at which this lamp lights by itself (the back courtyard lights one by one). */
+  at?: number;
+};
 
 const PLINTH = 0.9; // height of the thinnai platform
 const VERANDA_DEPTH = 3.2;
 const DOOR_W = 1.9;
 const DOOR_H = 3.0;
 
-export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
+export async function buildHouse(scene: THREE.Scene, quality: "high" | "low", y: () => Promise<void>): Promise<House> {
   const uTime = { value: 0 };
+  // each painted texture takes tens of milliseconds, so hand the main thread back between them
   const plasterS = T.plaster();
+  await y();
   const teakS = T.teak();
+  await y();
   const oxideS = T.redOxide();
+  await y();
   const earthS = T.earth();
+  await y();
   const roofS = T.roofTiles();
+  await y();
 
   const mat = {
     plaster: surface(plasterS, [3, 2], { roughness: 0.92, color: 0xffffff }),
@@ -149,6 +164,7 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
   // barred windows either side of the door
   for (const wx of [-4.4 + 1.25, 4.4 - 1.25, -6.9 + 1.25, 6.9 - 1.25]) add(barredWindow(wx, PLINTH + 1.1, mat));
 
+  await y();
   // ---------------------------------------------------------------- the carved door
   const frameZ = 0.02;
   // stepped teak frame: three nested mouldings
@@ -161,6 +177,7 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
     add(box(DOOR_W + pad * 2, 0.14, depth, fm, 0, PLINTH + DOOR_H + pad - 0.07, frameZ + depth / 2));
   }
   // carved lintel panel above the frame
+  await y();
   const lintelS = T.lintel();
   const lintelM = new THREE.Mesh(
     new THREE.BoxGeometry(DOOR_W + 1.0, 0.55, 0.16),
@@ -172,7 +189,9 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
   // threshold
   add(box(DOOR_W + 0.3, 0.12, 0.5, mat.teak, 0, PLINTH + 0.06, 0.05));
 
+  await y();
   const leafS = T.doorLeaf();
+  await y();
   const leafMat = surface(leafS, [1, 1], { roughness: 0.5, normal: 1.4 });
   const leafW = DOOR_W / 2;
   const mkLeaf = (side: -1 | 1) => {
@@ -194,6 +213,7 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
   const doorLeft = mkLeaf(-1);
   const doorRight = mkLeaf(1);
 
+  await y();
   // ---------------------------------------------------------------- upper storey
   const upperY0 = roofTopY - 0.1;
   const upperH = 3.9;
@@ -257,6 +277,7 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
 
   // ---------------------------------------------------------------- palms behind the house
   const cutouts: THREE.Mesh[] = [];
+  await y();
   // coconut palms behind the house, and a grove off to the left of the yard for the low sun to stream through
   buildPalms(
     scene,

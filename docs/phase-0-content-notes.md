@@ -17,7 +17,7 @@ Where every fact in `src/content.ts` came from, and what still needs your answer
 | Kambaz LMS team | Team project of 3 (both repo READMEs) | "independently shipping it" | Team project |
 | Kambaz auth | express-session cookies (API README) | JWT auth and RBAC | Not mentioned |
 | Kambaz tests | Vitest reducer tests, node:test API tests | 12+ workflow Selenium E2E suite | Not mentioned |
-| Kambaz live link | Two live deployments: `kambaz-next-js-eight-theta` (homepage of kambaz-lms-web) and `kambaz-next-js-navy-sigma` (older course repo). Both return 200. | n/a | eight-theta |
+| Kambaz live link | `eight-theta` is deployed from the teammate's Vercel account (bsreedee/kambaz-next-js; kambaz-lms-web is a fork of it). `navy-sigma` is the homepage of the individual repo kambaz-next-js and calls the individual API kambaz-node-server-app on Render. | n/a | navy-sigma, with the individual repos (updated 30 Oct) |
 | Doc chatbot | Repo: PyMuPDF, Tesseract, bge-small, BM25, FAISS, Gemini | Textract, Flask, Docker, LoRA 7B to 13B | Repo version, as you asked |
 
 ## Missing

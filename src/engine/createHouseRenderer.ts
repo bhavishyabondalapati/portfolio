@@ -15,7 +15,7 @@ import { MOODS, moodAt, sunDirection, type LightMode, type Mood } from "./lighti
 import { ALL_ON, createPost, type PostFlags } from "./post";
 import { glow } from "./textures";
 import { buildWordmark } from "./wordmark";
-import { experienceStops, projectStop } from "../lib/journey";
+import { backLampTimes, endStops, experienceStops, projectStop } from "../lib/journey";
 import { clamp, damp, easeInOut, lerp, mulberry32, smooth, tex } from "./util";
 
 export type Overlay = { hit: HTMLElement; bubble: HTMLElement };
@@ -83,15 +83,38 @@ function buildShots(): Shot[] {
     const s: Omit<Shot, "j"> = { p: [0.9, 2.45, zc + 3.6], l: [-1.7, 2.2, zc - 0.4], fov: 52, k: [0.05, 0.9, zc + 0.4, null], stop: `bay-${i}` };
     shots.push({ j: j0 + 0.06, ...s }, { j: j0 + 0.19, ...s });
   });
-  shots.push({ j: 3.0, p: [0.6, 2.45, -49.6], l: [0, 2.3, -56], fov: 54, k: [0.2, 0.9, -50.6, PI] });
+  shots.push(
+    // ---- other work: the accountant's desk at the end of the corridor; the kitten sits on the ledger
+    { j: 3.12, p: [-1.0, 2.3, -46.6], l: [0.3, 1.5, -51.0], fov: 50, k: [1.12, 1.6, -50.85, null], stop: "ledger" },
+    { j: 3.72, p: [-1.0, 2.3, -46.6], l: [0.3, 1.5, -51.0], fov: 50, k: [1.12, 1.6, -50.85, null], stop: "ledger" },
+    // ---- out through the low door into the back courtyard at dusk
+    { j: 4.0, p: [-0.65, 2.25, -50.6], l: [-0.6, 2.5, -58], fov: 56, k: [-0.4, 0.9, -54.2, PI] },
+    // ---- about: the tulsi planter, the lamps lighting along the walls
+    // the tulsi planter sits right of centre so the letter can hang beside it
+    { j: 4.2, p: [-3.7, 2.5, -53.9], l: [-1.4, 1.8, -59.8], fov: 50, k: [1.35, 0.9, -58.3, null], stop: "about" },
+    { j: 4.78, p: [-3.7, 2.5, -53.9], l: [-1.4, 1.8, -59.8], fov: 50, k: [1.35, 0.9, -58.3, null], stop: "about" },
+    { j: 5.02, p: [0.2, 2.35, -55.6], l: [0, 2.7, -64], fov: 52, k: [0.95, 0.9, -61.2, PI] },
+    // ---- contact: every lamp lit, the sky gone to indigo over the back wall
+    // from the left of the court, looking past the tulsi to the lit back wall and the door
+    { j: 5.25, p: [-2.6, 2.25, -57.0], l: [1.0, 2.7, -66.4], fov: 52, k: [1.6, 0.9, -62.6, null], stop: "contact" },
+    { j: 6.0, p: [-2.6, 2.25, -57.0], l: [1.0, 2.7, -66.4], fov: 52, k: [1.6, 0.9, -62.6, null], stop: "contact" }
+  );
   return shots;
 }
 
 const KITTEN_SCALE = 0.9;
 const WORD_DISTANCE = 5.6;
-const POOL = 4;
+const POOL = 5;
 
-export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): HouseRenderer {
+/**
+ * Builds the house over many short steps, handing the main thread back to the browser between them,
+ * so scrolling and clicks keep working while it loads (one long build froze the page for about 0.6 s).
+ */
+export async function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): Promise<HouseRenderer> {
+  const sched = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
+  const y = () => (sched?.yield ? sched.yield() : new Promise<void>((r) => setTimeout(r, 0)));
+  const marks: [string, number][] = [];
+  const mark = (label: string) => marks.push([label, performance.now()]);
   const quality = opts.quality ?? "high";
   let mode: LightMode = opts.mode ?? "golden";
   let mood: Mood = MOODS[mode];
@@ -168,16 +191,21 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   }
 
   // ---------------------------------------------------------------- the world
-  const house = buildHouse(scene, quality);
-  const interior = buildInterior(scene, house.mat, house.uTime, quality, opts.bays);
+  await y();
+  const house = await buildHouse(scene, quality, y);
+  await y();
+  const interior = await buildInterior(scene, house.mat, house.uTime, quality, opts.bays, backLampTimes, y);
+  await y();
   const lamps: Lamp[] = [...house.lamps, ...interior.lamps];
   const word = buildWordmark(scene, opts.word, opts.fontFamily);
+  await y();
   const leaves = buildLeaves(scene, quality === "high" ? 26 : 14);
   const beamSets = [
     buildBeams(scene, sunDirection(MOODS.golden), quality, YARD_LANDINGS),
     buildBeams(scene, new THREE.Vector3(-0.35, 0.9, 0.25).normalize(), quality, COURT_LANDINGS, 400),
     buildBeams(scene, new THREE.Vector3(-0.82, 0.38, 0.12).normalize(), quality, corridorLandings(), 500),
   ];
+  await y();
   const kitten = buildKitten(house.uTime);
   kitten.root.scale.setScalar(KITTEN_SCALE);
   scene.add(kitten.root);
@@ -198,7 +226,9 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     haze.push(h);
   }
 
+  await y();
   const post = createPost(renderer, scene, camera, { ...ALL_ON, ...opts.post });
+  await y();
 
   // ---------------------------------------------------------------- mood (blended every frame by depth)
   const white = new THREE.Color(1, 1, 1);
@@ -359,8 +389,12 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   // ---------------------------------------------------------------- panel anchors
   type Anchor = { id: string; pos: THREE.Vector3; j: number; range: number };
   const anchors: Anchor[] = [
-    ...experienceStops.map((j, i) => ({ id: `exp-${i}`, pos: interior.courtAnchors[i], j, range: 0.12 })),
-    ...interior.bays.map((b, i) => ({ id: b.id, pos: b.anchor, j: projectStop(i), range: 0.1 })),
+    // ranges are wide enough that each panel stays fully visible for about a screen of scrolling
+    ...experienceStops.map((j, i) => ({ id: `exp-${i}`, pos: interior.courtAnchors[i], j, range: 0.15 })),
+    ...interior.bays.map((b, i) => ({ id: b.id, pos: b.anchor, j: projectStop(i), range: 0.12 })),
+    { id: "ledger", pos: interior.endAnchors.ledger, j: endStops.ledger, range: 0.36 },
+    { id: "about", pos: interior.endAnchors.about, j: endStops.about, range: 0.36 },
+    { id: "contact", pos: interior.endAnchors.contact, j: endStops.contact, range: 0.6 },
   ];
   const frameState: FrameState = { anchors: anchors.map((a) => ({ id: a.id, x: 0, y: 0, a: 0 })), stop: null, resting: false };
   let frameCb: ((s: FrameState) => void) | null = null;
@@ -418,7 +452,8 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   const order: number[] = lamps.map((_, i) => i);
   function updateLamps(dt: number) {
     lamps.forEach((l, i) => {
-      const target = Math.max(mood.lamps, highlight.get(l.id ?? "") ?? 0);
+      const lit = l.at !== undefined && rig.j > l.at ? 1 : 0;
+      const target = Math.max(mood.lamps, highlight.get(l.id ?? "") ?? 0, lit);
       l.boost = damp(l.boost ?? 0, target, 6, dt);
       l.flame.visible = l.boost > 0.04;
       const d2 = camera.position.distanceToSquared(l.pos);
@@ -482,9 +517,12 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     interior.zones.hall.visible = cz < 6 && j > 0.45;
     interior.zones.court.visible = cz < 1;
     interior.zones.corridor.visible = cz < -12;
+    interior.zones.back.visible = cz < -42;
+    interior.zones.hall.visible = interior.zones.hall.visible && cz > -30;
+    interior.zones.court.visible = interior.zones.court.visible && cz > -44;
     house.root.visible = cz > -23;
     // planar reflections only while in the corridor
-    if (interior.reflector) interior.reflector.visible = reflections && cz < -21;
+    if (interior.reflector) interior.reflector.visible = reflections && cz < -21 && cz > -53;
     updateLamps(dt);
     for (const b of beamSets) b.update(clock, camera);
     leaves.update(dt, clock, camera);
@@ -526,7 +564,8 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   let disposed = false;
   let readySent = false;
   const perf = { acc: 0, n: 0, warm: 0, level: 0 };
-  const debugState = { j: 0, level: () => perf.level, flags: () => post.flags(), bench: (frames?: number) => bench(frames), scene, renderer, post };
+  const debugState = { marks,
+    j: 0, level: () => perf.level, flags: () => post.flags(), bench: (frames?: number) => bench(frames), scene, renderer, post };
   if (/[?&](debug|bench)=1/.test(location.search)) (window as unknown as { __house: unknown }).__house = debugState;
 
   // if frames are slow for a couple of seconds, give up the most expensive extras first
@@ -561,6 +600,7 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     frameCb?.(frameState);
     adapt(dt);
     if (!readySent) {
+      mark("first frame");
       readySent = true;
       opts.onReady?.();
     }
@@ -651,15 +691,63 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   // compile every shader up front, off the main thread where the browser supports it,
   // so the first frame does not freeze the page while about 60 programs build
   running = false;
-  renderer
-    .compileAsync(scene, camera)
-    .catch(() => undefined)
-    .finally(() => {
-      if (disposed) return;
-      running = true;
-      last = performance.now();
-      schedule();
+  mark("built");
+  // Warm up while the canvas is still invisible: compile the scene's shaders in the background, then
+  // switch the post-processing effects on one per task, so no single frame has to compile them all
+  // (that first frame alone blocked the page for about 0.3 s).
+  void (async () => {
+    try {
+      if (renderer.extensions.has("KHR_parallel_shader_compile")) {
+        await renderer.compileAsync(scene, camera);
+      } else {
+        // Firefox cannot compile shaders in the background, so compile the scene a piece at a time
+        const pieces: THREE.Object3D[] = [];
+        for (const c of scene.children) pieces.push(...(c.children.length > 12 ? c.children : [c]));
+        for (const piece of pieces) {
+          if (disposed) return;
+          renderer.compile(piece, camera, scene);
+          await y();
+        }
+      }
+    } catch {
+      // anything left compiles on first use instead
+    }
+    mark("compiled");
+    // upload the painted textures to the GPU a few at a time (otherwise the first frame uploads them all)
+    const textures = new Set<THREE.Texture>();
+    scene.traverse((o) => {
+      const mats = (o as THREE.Mesh).material;
+      for (const m of mats ? (Array.isArray(mats) ? mats : [mats]) : []) {
+        for (const v of Object.values(m)) if (v instanceof THREE.Texture) textures.add(v);
+      }
     });
+    let n = 0;
+    for (const t of textures) {
+      if (disposed) return;
+      renderer.initTexture(t);
+      if (++n % 4 === 0) await y();
+    }
+    mark("textures");
+    const target = post.flags();
+    const steps: Partial<PostFlags>[] = [
+      { post: false },
+      { post: true, smaa: false, bloom: false, ao: false, dof: false, grade: false },
+      ...(["smaa", "bloom", "grade", "ao", "dof"] as const).filter((k) => target[k]).map((k) => ({ [k]: true })),
+    ];
+    for (const step of target.post ? steps : steps.slice(0, 1)) {
+      if (disposed) return;
+      post.setFlags(step);
+      update(1 / 60);
+      post.render(1 / 60);
+      mark("step " + Object.keys(step).join("+"));
+      await y();
+    }
+    if (disposed) return;
+    mark("warmed");
+    running = true;
+    last = performance.now();
+    schedule();
+  })();
 
   return {
     setJourney: (j) => {

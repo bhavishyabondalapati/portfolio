@@ -33,3 +33,12 @@ test("hero shows name, role line and one action", () => {
   assert.ok(line.includes("full-stack"));
   assert.ok(content.person.heroAction.href.startsWith("#"));
 });
+
+test("Kambaz points at the individual build, not the team fork", () => {
+  const k = content.secondary.find((s) => s.slug === "kambaz");
+  assert.ok(k);
+  const hrefs = k.links.map((l) => l.href).join(" ");
+  assert.ok(hrefs.includes("kambaz-next-js-navy-sigma.vercel.app"));
+  assert.ok(hrefs.includes("/kambaz-next-js") && hrefs.includes("/kambaz-node-server-app"));
+  assert.equal(hrefs.includes("eight-theta"), false);
+});

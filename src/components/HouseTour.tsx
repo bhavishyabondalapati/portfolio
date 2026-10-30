@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { featured, person, tour } from "@/content";
 import type { FrameState, HouseRenderer } from "@/engine/createHouseRenderer";
-import { JOURNEY_SECTIONS, journeyFromRects, scrollForJourney } from "@/lib/journey";
+import { allStops, chapterAt, JOURNEY_SECTIONS, journeyFromRects, linkStops, scrollForJourney } from "@/lib/journey";
 
 export const MODE_EVENT = "tourmodechange";
 
@@ -25,6 +25,9 @@ function lineFor(stop: string | null) {
   if (!stop || stop === "hero") return tour.lines.hero;
   if (stop.startsWith("exp-")) return tour.experienceLines[Number(stop.slice(4))] ?? tour.lines.experience;
   if (stop.startsWith("bay-")) return tour.projectLines[featured[Number(stop.slice(4))]?.slug] ?? tour.lines.projects;
+  if (stop === "ledger") return tour.lines.otherWork;
+  if (stop === "about") return tour.lines.about;
+  if (stop === "contact") return tour.lines.contact;
   return tour.lines.hero;
 }
 
@@ -80,7 +83,7 @@ export function HouseTour() {
       const mode = (q.get("light") as "golden" | "dusk" | null) ?? (dark.matches ? "dusk" : "golden");
       const post = q.get("fx") === "off" ? { post: false } : undefined;
       try {
-        r = createHouseRenderer(canvas, {
+        const made = await createHouseRenderer(canvas, {
           word: person.shortName,
           fontFamily: family,
           bays: featured.map((p) => p.slug),
@@ -88,34 +91,81 @@ export function HouseTour() {
           post,
           onReady: () => setReady(true),
         });
+        // the build takes many frames; the visitor may have pressed Skip the tour meanwhile
+        if (cancelled || html.dataset.mode !== "tour") {
+          made.dispose();
+          return;
+        }
+        r = made;
       } catch {
         html.dataset.mode = "fast";
         return;
       }
       rendererRef.current = r;
-      r.attachOverlay({ hit, bubble });
+      const rr = r;
+      rr.attachOverlay({ hit, bubble });
 
       const sections = JOURNEY_SECTIONS.map((id) => document.getElementById(id)).filter((e): e is HTMLElement => !!e);
       const panels = new Map<string, HTMLElement>();
       document.querySelectorAll<HTMLElement>("[data-anchor]").forEach((el) => panels.set(el.dataset.anchor!, el));
-      const journey = document.getElementById("journey-end");
 
+      const scrollToJ = (j: number, smooth = false) => {
+        const tops = sections.map((s) => s.getBoundingClientRect().top + window.scrollY);
+        const heights = sections.map((s) => s.offsetHeight);
+        window.scrollTo({ top: scrollForJourney(j, tops, heights, window.innerHeight), behavior: smooth ? "smooth" : "instant" });
+      };
+      const navLinks = [...document.querySelectorAll<HTMLAnchorElement>(".topbar nav a")];
+
+      // ---- in-page links land on the first panel of their section, not on empty scenery
+      const onLinkClick = (e: MouseEvent) => {
+        const a = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="#"]');
+        const id = a?.getAttribute("href")?.slice(1) ?? "";
+        if (!a || !(id in linkStops)) return;
+        e.preventDefault();
+        scrollToJ(linkStops[id]);
+        history.replaceState(null, "", `#${id}`);
+      };
+      document.addEventListener("click", onLinkClick);
+
+      // ---- when scrolling stops near a pause, settle onto it, so paging cannot skip a panel
+      let settle = 0;
+      let settling = false;
+      const settleOnStop = () => {
+        // a panel is already readable here: leave the reader where they are
+        if ([...panels.values()].some((el) => el.dataset.active === "true")) return;
+        const j = journeyFromRects(sections.map((s) => s.getBoundingClientRect()), window.innerHeight);
+        const near = allStops.reduce((best, s) => (Math.abs(s - j) < Math.abs(best - j) ? s : best), allStops[0]);
+        if (Math.abs(near - j) < 0.09 && Math.abs(near - j) > 0.004) {
+          settling = true;
+          scrollToJ(near, true);
+          window.setTimeout(() => (settling = false), 700);
+        }
+      };
+
+      let journeyNow = 0;
       // ---- scroll drives the walk
       const onScroll = () => {
+        window.clearTimeout(settle);
+        if (!settling) settle = window.setTimeout(settleOnStop, 220);
         const j = journeyFromRects(
           sections.map((s) => s.getBoundingClientRect()),
           window.innerHeight
         );
         r?.setJourney(j);
+        journeyNow = j;
         html.dataset.scrolled = String(j > 0.1);
-        html.dataset.pastHero = String(j >= 2.999);
-        html.dataset.chapter = j >= 1.05 && j < 2 ? "experience" : j >= 2 && j < 3 ? "projects" : "";
-        html.style.setProperty("--tour-p", Math.min(1, Math.max(0, j / 3)).toFixed(3));
-        r?.setRunning(!journey || journey.getBoundingClientRect().top > 0);
+        html.dataset.pastHero = String(j >= JOURNEY_SECTIONS.length - 0.001);
+        const chapter = chapterAt(j);
+        html.dataset.chapter = chapter;
+        for (const a of navLinks) {
+          if (a.getAttribute("href") === `#${chapter}`) a.setAttribute("aria-current", "location");
+          else a.removeAttribute("aria-current");
+        }
+        html.style.setProperty("--tour-p", Math.min(1, Math.max(0, j / JOURNEY_SECTIONS.length)).toFixed(3));
       };
 
       // ---- panels follow their anchors in the scene
-      r.onFrame((s: FrameState) => {
+      rr.onFrame((s: FrameState) => {
         const w = window.innerWidth;
         const h = window.innerHeight;
         for (const a of s.anchors) {
@@ -125,13 +175,38 @@ export function HouseTour() {
           const ph = el.offsetHeight;
           // jobs hang centred on their colonnade; a project docks beside its bay, so the exhibit,
           // its lamp and the kitten stay in view
-          const bay = !a.id.startsWith("exp-");
-          const x = Math.min(Math.max(bay ? a.x - pw - 56 : a.x - pw / 2, 24), w - pw - 24);
-          // keep clear of the top bar and the chapter title
-          const y = Math.min(Math.max(a.y - ph / 2, 150), h - ph - 20);
+          const beside = el.dataset.place === "left";
+          const x = Math.min(Math.max(beside ? a.x - pw - 56 : a.x - pw / 2, 48), w - pw - 48);
+          // keep clear of the top bar, and of the chapter title in Experience and Projects
+          const top = el.closest("#experience, #projects") ? 150 : 84;
+          const y = Math.min(Math.max(a.y - ph / 2, top), h - ph - 20);
           el.style.transform = `translate(${x.toFixed(1)}px, ${(y + (1 - a.a) * 18).toFixed(1)}px)`;
           el.style.opacity = a.a.toFixed(3);
           el.dataset.active = String(a.a > 0.5);
+          // a panel taller than the screen reads top to bottom while you scroll through its stop
+          const extra = el.scrollHeight - el.clientHeight;
+          if (extra > 0 && a.a > 0.5 && !el.contains(document.activeElement)) {
+            const stopJ = Number(el.dataset.j);
+            const half = a.id.startsWith("exp-") ? 0.07 : el.closest("#projects") ? 0.06 : 0.2;
+            const t = Math.min(1, Math.max(0, (journeyNow - (stopJ - half)) / (2 * half)));
+            el.scrollTop = t * extra;
+          }
+        }
+        // the kitten's bubble steps clear of whichever panel is showing
+        const b = bubble.getBoundingClientRect();
+        let dx = Number(bubble.dataset.dx ?? 0);
+        const raw = { left: b.left - dx, right: b.right - dx, top: b.top, bottom: b.bottom };
+        dx = 0;
+        for (const el of panels.values()) {
+          if (el.dataset.active !== "true") continue;
+          const p = el.getBoundingClientRect();
+          if (raw.left < p.right && raw.right > p.left && raw.top < p.bottom && raw.bottom > p.top) {
+            dx = p.right + 14 - raw.left;
+          }
+        }
+        if (dx !== Number(bubble.dataset.dx ?? 0)) {
+          bubble.dataset.dx = String(dx);
+          bubble.style.setProperty("--bdx", `${dx}px`);
         }
         if (s.stop !== stopRef.current) {
           stopRef.current = s.stop;
@@ -187,6 +262,9 @@ export function HouseTour() {
         delete html.dataset.scrolled;
         delete html.dataset.pastHero;
         delete html.dataset.chapter;
+        window.clearTimeout(settle);
+        document.removeEventListener("click", onLinkClick);
+        for (const a of navLinks) a.removeAttribute("aria-current");
         html.style.removeProperty("--tour-p");
         panels.forEach((el) => {
           el.removeEventListener("pointerenter", onEnter);

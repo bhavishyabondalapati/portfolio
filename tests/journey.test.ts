@@ -31,3 +31,14 @@ test("every stop sits inside its own section", () => {
   for (const j of experienceStops) assert.ok(j > 1 && j < 2);
   for (let i = 0; i < 4; i++) assert.ok(projectStop(i) > 2 && projectStop(i) < 3);
 });
+
+test("the walk now covers all six sections, and the end stops sit in their own sections", async () => {
+  const { JOURNEY_SECTIONS, endStops, backLampTimes, chapterAt } = await import("../src/lib/journey.ts");
+  assert.deepEqual([...JOURNEY_SECTIONS], ["top", "experience", "projects", "other-work", "about", "contact"]);
+  assert.equal(chapterAt(endStops.ledger), "other-work");
+  assert.equal(chapterAt(endStops.about), "about");
+  assert.equal(chapterAt(endStops.contact), "contact");
+  // the back courtyard lamps light one by one, in order, between leaving the corridor and the contact stop
+  for (let i = 1; i < backLampTimes.length; i++) assert.ok(backLampTimes[i] > backLampTimes[i - 1]);
+  assert.ok(backLampTimes[0] > 4 && backLampTimes[backLampTimes.length - 1] < endStops.contact);
+});

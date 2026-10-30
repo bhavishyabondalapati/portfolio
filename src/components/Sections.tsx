@@ -1,7 +1,7 @@
 // The content sections. For now they sit on the plain page under the hero; later each one
 // gets its own scene in the house. Everything here comes from src/content.ts.
 import { certifications, contact, education, experience, featured, otherWork, person, secondary, skills } from "@/content";
-import { experienceStops, projectStop } from "@/lib/journey";
+import { endStops, experienceStops, projectStop } from "@/lib/journey";
 
 export function Sections() {
   return (
@@ -12,9 +12,16 @@ export function Sections() {
         </h2>
         <div className="jobs">
           {experience.map((job, i) => (
-            <article key={job.company} className="job" data-anchor={`exp-${i}`} data-j={experienceStops[i]}>
-              <h3>{job.company}</h3>
-              <p className="meta">
+            <article
+              key={job.company}
+              className="job"
+              data-anchor={`exp-${i}`}
+              data-j={experienceStops[i]}
+              tabIndex={0}
+              aria-labelledby={`job-${i}`}
+            >
+              <h3 id={`job-${i}`}>{job.company}</h3>
+              <p className="role">
                 {job.role}, {job.place}. {job.dates}
               </p>
               <p className="lead">{job.summary}</p>
@@ -32,32 +39,48 @@ export function Sections() {
       <section id="projects" className="section" aria-labelledby="projects-title">
         <h2 id="projects-title">Selected projects</h2>
         {featured.map((p, i) => (
-          <article key={p.slug} className="project" data-anchor={p.slug} data-j={projectStop(i)}>
+          <article
+            key={p.slug}
+            className="project"
+            data-anchor={p.slug}
+            data-j={projectStop(i)}
+            data-place="left"
+            tabIndex={0}
+            aria-labelledby={`project-${p.slug}`}
+          >
             <div className="project-text">
-              <h3>{p.name}</h3>
+              <div className="project-head">
+                <h3 id={`project-${p.slug}`}>{p.name}</h3>
+                <p className="links">
+                  {p.links.map((l) => (
+                    <a key={l.href} href={l.href} rel="noopener noreferrer" target="_blank">
+                      {l.label}
+                    </a>
+                  ))}
+                </p>
+              </div>
               <p className="lead">{p.oneLine}</p>
-              <h4>The problem</h4>
-              <p>{p.problem}</p>
-              <h4>What I built</h4>
-              <ul>
-                {p.built.map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
-              </ul>
-              <h4>Result</h4>
-              <ul>
-                {p.result.map((b) => (
-                  <li key={b}>{b}</li>
-                ))}
-              </ul>
-              <p className="stack">{p.stack.join(", ")}</p>
-              <p className="links">
-                {p.links.map((l) => (
-                  <a key={l.href} href={l.href} rel="noopener noreferrer" target="_blank">
-                    {l.label}
-                  </a>
-                ))}
-              </p>
+              <div className="project-cols">
+                <div>
+                  <h4>Result</h4>
+                  <ul>
+                    {p.result.map((b) => (
+                      <li key={b}>{b}</li>
+                    ))}
+                  </ul>
+                  <p className="stack">{p.stack.join(", ")}</p>
+                </div>
+                <div>
+                  <h4>The problem</h4>
+                  <p>{p.problem}</p>
+                  <h4>What I built</h4>
+                  <ul>
+                    {p.built.map((b) => (
+                      <li key={b}>{b}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
             {p.media.length > 0 && (
               <figure className="project-media">
@@ -74,11 +97,8 @@ export function Sections() {
         ))}
       </section>
 
-      {/* in the tour, the walk through the house ends here and the page carries on below it */}
-      <div id="journey-end" aria-hidden="true" />
-
       <section id="other-work" className="section ledger" aria-labelledby="other-title">
-        <div className="ledger-sheet">
+        <div className="ledger-sheet" data-anchor="ledger" data-j={endStops.ledger} data-place="left" tabIndex={0} aria-labelledby="other-title">
           <h2 id="other-title">Other work</h2>
           {secondary.map((s) => (
             <article key={s.slug} className="ledger-row ledger-row-major">
@@ -114,48 +134,53 @@ export function Sections() {
       </section>
 
       <section id="about" className="section" aria-labelledby="about-title">
-        <h2 id="about-title">About</h2>
-        <div className="about">
-          <div>
-            <p className="lead">{person.intro}</p>
-            <p>{person.lookingFor}</p>
-            <h3>Education</h3>
-            <ul>
-              {education.map((e) => (
-                <li key={e.school}>
-                  {e.degree}, {e.school}. GPA {e.gpa}. {e.dates}.
-                </li>
+        <div className="about-panel" data-anchor="about" data-j={endStops.about} data-place="left" tabIndex={0} aria-labelledby="about-title">
+          <h2 id="about-title">About</h2>
+          <div className="about">
+            <div>
+              <p className="lead">{person.intro}</p>
+              <p>{person.lookingFor}</p>
+              <h3>Education</h3>
+              <ul>
+                {education.map((e) => (
+                  <li key={e.school}>
+                    {e.degree}, {e.school}. GPA {e.gpa}. {e.dates}.
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3>Skills</h3>
+              {skills.map((g) => (
+                <p key={g.group}>
+                  <strong>{g.group}:</strong> {g.items.join(", ")}
+                </p>
               ))}
-            </ul>
+              <h3>Certifications</h3>
+              <p>{certifications.join(", ")}</p>
+            </div>
           </div>
-          <div>
-            <h3>Skills</h3>
-            {skills.map((g) => (
-              <p key={g.group}>
-                <strong>{g.group}:</strong> {g.items.join(", ")}
-              </p>
-            ))}
-            <h3>Certifications</h3>
-            <p>{certifications.join(", ")}</p>
-          </div>
+          <p className="about-sign">Bhavishya</p>
         </div>
       </section>
 
       <section id="contact" className="section contact" aria-labelledby="contact-title">
-        <h2 id="contact-title">Write to me</h2>
-        <p className="lead">{person.lookingFor}</p>
-        <p>
-          <a className="button" href={`mailto:${contact.email}`}>
-            {contact.email}
-          </a>
-        </p>
-        <p className="links">
-          {contact.links.map((l) => (
-            <a key={l.href} href={l.href} rel="noopener noreferrer" target="_blank">
-              {l.label}
+        <div className="contact-panel" data-anchor="contact" data-j={endStops.contact} tabIndex={0} aria-labelledby="contact-title">
+          <h2 id="contact-title">Write to me</h2>
+          <p className="lead">{person.contactLine}</p>
+          <p>
+            <a className="button" href={`mailto:${contact.email}`}>
+              {contact.email}
             </a>
-          ))}
-        </p>
+          </p>
+          <p className="links">
+            {contact.links.map((l) => (
+              <a key={l.href} href={l.href} rel="noopener noreferrer" target="_blank">
+                {l.label}
+              </a>
+            ))}
+          </p>
+        </div>
       </section>
     </div>
   );

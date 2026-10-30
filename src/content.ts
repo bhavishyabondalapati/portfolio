@@ -57,6 +57,7 @@ export const person = {
   intro:
     "MS Computer Science student at Northeastern. I build machine learning systems that check their own work, and the backends that serve them.",
   lookingFor: "Looking for ML systems, backend and full-stack roles.",
+  contactLine: "Email is the fastest way to reach me.",
   location: "Boston, MA",
   // The one sentence under the name on the first screen.
   heroLine: "MS\u00a0Computer Science at Northeastern, GPA\u00a03.9, graduating May\u00a02027. Open to ML systems, backend and full-stack roles.",
@@ -222,14 +223,15 @@ export const secondary: SecondaryProject[] = [
     slug: "kambaz",
     name: "Kambaz LMS",
     oneLine:
-      "A Canvas-style learning management system: courses, modules, enrollments and timed quizzes that grade themselves.",
-    // Repo version confirmed: team of 3. CONFIRM which live deployment is final (eight-theta or navy-sigma).
-    highlight: "Team final project (3 people) for CS 5610 Web Development at Northeastern, Fall 2025. Live on Vercel.",
-    stack: ["Next.js 15", "React 19", "Redux Toolkit", "Express 5", "MongoDB", "Mongoose"],
+      "A Canvas-style learning management system: courses, modules, assignments and enrollments, with editing tools for faculty.",
+    // My individual CS 5610 build (kambaz-next-js + kambaz-node-server-app), not the team fork.
+    highlight:
+      "Next.js and Redux frontend talking to my own Express and MongoDB API with cookie sessions. Built for CS 5610 Web Development at Northeastern, Fall 2025.",
+    stack: ["Next.js 15", "React 19", "TypeScript", "Redux Toolkit", "Express 5", "MongoDB", "Mongoose"],
     links: [
-      { label: "Live site", href: "https://kambaz-next-js-eight-theta.vercel.app" },
-      { label: "Frontend code", href: `${GH}/kambaz-lms-web` },
-      { label: "API code", href: `${GH}/kambaz-lms-api` },
+      { label: "Live site", href: "https://kambaz-next-js-navy-sigma.vercel.app" },
+      { label: "Frontend code", href: `${GH}/kambaz-next-js` },
+      { label: "API code", href: `${GH}/kambaz-node-server-app` },
     ],
   },
   {
