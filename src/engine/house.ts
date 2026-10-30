@@ -2,6 +2,7 @@
 // World units are metres. The facade wall sits on z = 0 and the street is toward +z.
 import * as THREE from "three";
 import * as T from "./textures";
+import { buildPalms } from "./palms";
 import { mulberry32, tex } from "./util";
 
 export type House = {
@@ -9,9 +10,10 @@ export type House = {
   doorRight: THREE.Group;
   /** Sheets in front of the camera that sway and dissolve as the camera passes. */
   cutouts: THREE.Mesh[];
-  /** Brightens as the door opens, so the courtyard light spills out. */
-  courtyardLight: THREE.PointLight;
-  courtyardGlow: THREE.Mesh;
+  /** Shared materials, reused by the interior. */
+  mat: Mats;
+  /** Everything in the front of the house, so the renderer can skip it once you are deep inside. */
+  root: THREE.Group;
   kolam: THREE.Mesh;
   /** A jasmine sprig the renderer hangs right in front of the lens (out of focus). */
   branch: THREE.Mesh | null;
@@ -22,7 +24,11 @@ export type House = {
   uTime: { value: number };
 };
 
-export type Lamp = { flame: THREE.Mesh; light: THREE.PointLight; base: number };
+/**
+ * A lamp is a glowing flame or bulb plus a position. Real lights come from a small pool the renderer
+ * moves to whichever lamps are nearest the camera, so the number of lights in the shaders stays fixed.
+ */
+export type Lamp = { flame: THREE.Mesh; pos: THREE.Vector3; base: number; color: number; id?: string; boost?: number };
 
 const PLINTH = 0.9; // height of the thinnai platform
 const VERANDA_DEPTH = 3.2;
@@ -188,32 +194,6 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
   const doorLeft = mkLeaf(-1);
   const doorRight = mkLeaf(1);
 
-  // ---------------------------------------------------------------- inside: hall, then the bright courtyard
-  const hallD = 7;
-  add(box(DOOR_W + 1.3, 0.02, hallD, mat.oxide, 0, PLINTH + 0.01, -hallD / 2 - 0.2));
-  add(box(0.2, 3.6, hallD, mat.plaster, -(DOOR_W + 1.3) / 2, PLINTH + 1.8, -hallD / 2 - 0.2));
-  add(box(0.2, 3.6, hallD, mat.plaster, (DOOR_W + 1.3) / 2, PLINTH + 1.8, -hallD / 2 - 0.2));
-  add(box(DOOR_W + 1.5, 0.2, hallD, mat.teakDark, 0, PLINTH + 3.6, -hallD / 2 - 0.2));
-  // inner doorway frame at the end of the hall
-  add(box(0.3, 3.0, 0.3, mat.teak, -0.8, PLINTH + 1.5, -hallD));
-  add(box(0.3, 3.0, 0.3, mat.teak, 0.8, PLINTH + 1.5, -hallD));
-  add(box(1.9, 0.3, 0.3, mat.teak, 0, PLINTH + 3.0, -hallD));
-  // the courtyard beyond: sunlit floor, far pillars and a bright sky wall
-  const yard = new THREE.Mesh(new THREE.PlaneGeometry(12, 10), new THREE.MeshStandardMaterial({ color: 0xe8d9b8, roughness: 0.6 }));
-  yard.rotation.x = -Math.PI / 2;
-  yard.position.set(0, PLINTH + 0.005, -hallD - 5);
-  add(yard);
-  for (const fx of [-2.4, -0.9, 0.9, 2.4]) add(pillar(fx, -hallD - 7.5, PLINTH, PLINTH + 3.2, mat, true));
-  const courtyardGlow = new THREE.Mesh(
-    new THREE.PlaneGeometry(14, 9),
-    new THREE.MeshBasicMaterial({ color: new THREE.Color(1.6, 1.42, 1.1), toneMapped: true })
-  );
-  courtyardGlow.position.set(0, PLINTH + 4, -hallD - 10);
-  add(courtyardGlow);
-  const courtyardLight = new THREE.PointLight(0xffe4b8, 0, 14, 1.6);
-  courtyardLight.position.set(0, PLINTH + 2.6, -hallD - 2);
-  add(courtyardLight);
-
   // ---------------------------------------------------------------- upper storey
   const upperY0 = roofTopY - 0.1;
   const upperH = 3.9;
@@ -277,23 +257,21 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
 
   // ---------------------------------------------------------------- palms behind the house
   const cutouts: THREE.Mesh[] = [];
-  // palms behind the house, and a grove off to the left of the yard for the low sun to stream through
-  const palms: [number, number, number][] = [
-    [-13, -10, 14],
-    [-9.5, -12, 17],
-    [11, -14, 14],
-    [14.5, -16, 17],
-    [-10, 4, 14],
-    [-12.5, 0, 16],
-    [-15, -3, 13],
-  ];
-  palms.forEach(([px, pz, h], i) => {
-    const p = new THREE.Mesh(new THREE.PlaneGeometry(h * 0.5, h), cutoutMaterial(T.palm(i + 3), 0.02, uTime));
-    p.position.set(px, h / 2 - 0.2, pz);
-    p.rotation.y = 0.5;
-    p.castShadow = i >= 4;
-    add(p);
-  });
+  // coconut palms behind the house, and a grove off to the left of the yard for the low sun to stream through
+  buildPalms(
+    scene,
+    [
+      { x: -13, z: -10, height: 13, lean: [0.06, 0.02], seed: 1 },
+      { x: -9.5, z: -12, height: 16.5, lean: [-0.04, -0.05], seed: 2 },
+      { x: 11, z: -14, height: 12, lean: [0.08, 0.03], seed: 3 },
+      { x: 14.5, z: -16, height: 17, lean: [-0.06, 0.02], seed: 4 },
+      { x: -10, z: 4, height: 11.5, lean: [0.12, 0.05], seed: 5 },
+      { x: -12.5, z: 0, height: 15.5, lean: [0.05, -0.03], seed: 6 },
+      { x: -15, z: -3, height: 9.5, lean: [0.14, 0.08], seed: 7 },
+      { x: 13, z: 6, height: 10.5, lean: [-0.1, 0.06], seed: 8 },
+    ],
+    uTime
+  );
 
   // a far treeline closing the horizon
   const trees = new THREE.Mesh(new THREE.PlaneGeometry(160, 20), cutoutMaterial(T.treeline(), 0.01, uTime));
@@ -318,10 +296,10 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
   // box() and the builders already cast shadows; everything solid also receives them
   root.traverse((o) => {
     const m = o as THREE.Mesh;
-    if (m.isMesh && !cutouts.includes(m) && m !== courtyardGlow) m.receiveShadow = true;
+    if (m.isMesh && !cutouts.includes(m)) m.receiveShadow = true;
   });
 
-  return { doorLeft, doorRight, cutouts, courtyardLight, courtyardGlow, kolam: kolamMesh, branch, lamps, glow: { windows: mat.windowGlow, fanlights }, uTime };
+  return { doorLeft, doorRight, cutouts, mat, root, kolam: kolamMesh, branch, lamps, glow: { windows: mat.windowGlow, fanlights }, uTime };
 }
 
 // ------------------------------------------------------------------ builders
@@ -334,7 +312,7 @@ function box(w: number, h: number, d: number, m: THREE.Material, x: number, y: n
   return mesh;
 }
 
-type Mats = Record<string, THREE.Material>;
+export type Mats = Record<string, THREE.MeshStandardMaterial>;
 
 /** A turned teak pillar on a painted base block, with an ochre capital and a carved bracket. */
 function pillar(x: number, z: number, y0: number, y1: number, mat: Mats, plain = false) {
@@ -460,13 +438,10 @@ function oilLamp(x: number, y: number, z: number, mat: Mats, lamps: Lamp[], scal
   flame.position.set(0.075, 0.49, 0);
   flame.visible = false;
   g.add(flame);
-  const light = new THREE.PointLight(0xffa858, 0, 9, 2);
-  light.position.set(0.075, 0.55, 0.05);
-  light.visible = false;
-  g.add(light);
   g.position.set(x, y, z);
   g.scale.setScalar(scale);
-  lamps.push({ flame, light, base: 14 });
+  g.updateMatrixWorld(true);
+  lamps.push({ flame, pos: flame.getWorldPosition(new THREE.Vector3()), base: 9, color: 0xffa858 });
   return g;
 }
 

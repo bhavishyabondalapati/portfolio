@@ -579,3 +579,120 @@ html[data-capture="1"] .kitten-bubble {
     order: -1;
   }
 }
+
+/* ------------------------------------------------------------ the walk through the house (tour mode)
+   Experience and Projects become stretches of scroll with the house showing through; their articles
+   become panels pinned to the scene by HouseTour.tsx. On the fast page none of this applies. */
+html[data-mode="tour"] .sections {
+  background: transparent;
+}
+html[data-mode="tour"] #experience,
+html[data-mode="tour"] #projects {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+html[data-mode="tour"] #experience {
+  height: 320vh;
+}
+html[data-mode="tour"] #projects {
+  height: 460vh;
+}
+html[data-mode="tour"] #other-work,
+html[data-mode="tour"] #about,
+html[data-mode="tour"] #contact {
+  position: relative;
+  z-index: 5;
+}
+html[data-mode="tour"] #about,
+html[data-mode="tour"] #contact {
+  max-width: none;
+  background: var(--ground);
+  padding-left: max(var(--gutter), calc((100vw - 1280px) / 2));
+  padding-right: max(var(--gutter), calc((100vw - 1280px) / 2));
+}
+html[data-mode="tour"] #other-work {
+  margin-top: 0;
+}
+
+/* chapter titles: the section heading sits top-left while you are in that part of the house */
+html[data-mode="tour"] #experience > h2,
+html[data-mode="tour"] #projects > h2 {
+  position: fixed;
+  top: 76px;
+  left: var(--gutter);
+  z-index: 4;
+  margin: 0;
+  padding: 8px 16px 10px;
+  background: var(--ground);
+  font-size: clamp(1.8rem, 1.2rem + 1.8vw, 2.8rem);
+  opacity: 0;
+  transform: translateY(-8px);
+  transition:
+    opacity 400ms var(--ease-out),
+    transform 400ms var(--ease-out);
+  pointer-events: none;
+}
+html[data-chapter="experience"] #experience > h2,
+html[data-chapter="projects"] #projects > h2 {
+  opacity: 1;
+  transform: none;
+}
+
+/* the pinned panels */
+html[data-mode="tour"] .jobs {
+  display: block;
+}
+html[data-mode="tour"] [data-anchor] {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: min(28rem, 44vw);
+  max-height: calc(100vh - 170px);
+  overflow: auto;
+  margin: 0;
+  padding: 18px 22px 20px;
+  background: var(--ground);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transform: translate(-200vw, 0);
+}
+html[data-mode="tour"] [data-anchor][data-active="true"] {
+  pointer-events: auto;
+}
+html[data-mode="tour"] [data-anchor] h3 {
+  font-size: 1.4rem;
+}
+html[data-mode="tour"] [data-anchor] h4 {
+  margin: 12px 0 4px;
+  font-size: 0.95rem;
+}
+html[data-mode="tour"] [data-anchor] .lead {
+  font-size: 1.05rem;
+}
+html[data-mode="tour"] [data-anchor] li + li {
+  margin-top: 3px;
+}
+html[data-mode="tour"] .project {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+html[data-mode="tour"] .project-media {
+  position: static;
+  order: -1;
+  margin: 0 0 12px;
+}
+html[data-mode="tour"] .project-media img,
+html[data-mode="tour"] .project-media video {
+  max-height: 130px;
+  object-fit: cover;
+}
+html[data-mode="tour"] #journey-end {
+  height: 1px;
+}

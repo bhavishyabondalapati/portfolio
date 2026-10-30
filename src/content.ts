@@ -350,6 +350,14 @@ export const tour = {
     about: "Golden hour. Good time for the backstory.",
     contact: "That's the tour. Bhavishya answers email faster than I answer to my name.",
   },
+  // what the kitten says at each project's bay in the corridor
+  projectLines: {
+    "aerial-change-intelligence": "It checks every number the AI writes. I check every box that arrives.",
+    "llm-gateway": "3,085 requests a second. I can manage about two.",
+    "robot-arm-sim": "46 of 50 pickups. I'm 0 for 50 against the laser dot.",
+    "excel-copilot": "It has an undo button. I've asked for one for naps.",
+  } as Record<string, string>,
+  experienceLines: ["Two internships. Six AI agents. Zero naps.", "Then a healthcare platform. 100K+ embeddings, searched in under 3 seconds."],
   // Scene descriptions for screen readers and the fast version's still images.
   sceneAlt: {
     hero: "The front of a Chettinad house at golden hour, seen from the corner of the yard: a raised veranda with turned teak pillars, a carved teak door, and the name bhavishya standing in the front yard.",

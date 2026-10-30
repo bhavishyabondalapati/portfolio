@@ -32,6 +32,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## three.js
+
+`three` 0.186.1, MIT licence (Copyright 2010-2026 three.js authors). The floor reflections use its bundled `Reflector` add-on.
+
 ## Post-processing libraries
 
 - `postprocessing` 6.39.5 by Raoul van Rüschen (pmndrs), zlib licence: https://github.com/pmndrs/postprocessing/blob/main/LICENSE.md

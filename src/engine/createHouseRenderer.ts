@@ -1,23 +1,34 @@
 // One renderer, one scene, one loop: the pattern ThreeUI's scene components use.
 // React hosts the canvas and the HTML overlay; everything 3D lives here.
+//
+// The whole site is one camera path. React reports a "journey position" j: 0..1 across the hero,
+// 1..2 across Experience, 2..3 across Projects. A list of shots (camera position, look-at point, lens,
+// and where the kitten stands) is pinned to values of j; between shots the camera glides, at a stop it
+// eases in and holds. HTML panels are pinned to points in the house and fade in near their stop.
 import * as THREE from "three";
-import { buildBeams } from "./beams";
-import { buildHouse } from "./house";
+import { buildBeams, YARD_LANDINGS, type Landing } from "./beams";
+import { buildHouse, type Lamp } from "./house";
+import { buildInterior } from "./interior";
 import { buildKitten } from "./kitten";
-import { MOODS, sunDirection, type LightMode, type Mood } from "./lighting";
-import { buildPetals } from "./petals";
+import { buildLeaves } from "./leaves";
+import { MOODS, moodAt, sunDirection, type LightMode, type Mood } from "./lighting";
 import { ALL_ON, createPost, type PostFlags } from "./post";
 import { glow } from "./textures";
 import { buildWordmark } from "./wordmark";
+import { experienceStops, projectStop } from "../lib/journey";
 import { clamp, damp, easeInOut, lerp, mulberry32, smooth, tex } from "./util";
 
 export type Overlay = { hit: HTMLElement; bubble: HTMLElement };
 export type BenchRow = { label: string; ms: number };
+export type AnchorState = { id: string; x: number; y: number; a: number };
+export type FrameState = { anchors: AnchorState[]; stop: string | null; resting: boolean };
 
 export type HouseRenderer = {
-  setProgress: (p: number) => void;
+  setJourney: (j: number) => void;
   setPointer: (nx: number, ny: number, active: boolean) => void;
   setLighting: (mode: LightMode) => void;
+  setHighlight: (id: string, on: boolean) => void;
+  onFrame: (cb: (s: FrameState) => void) => void;
   swing: () => void;
   attachOverlay: (o: Overlay) => void;
   setRunning: (on: boolean) => void;
@@ -28,43 +39,62 @@ export type HouseRenderer = {
 type Options = {
   word: string;
   fontFamily: string;
+  /** Project ids, one per corridor bay, in order. */
+  bays: string[];
   quality?: "high" | "low";
   mode?: LightMode;
   post?: Partial<PostFlags>;
   onReady?: () => void;
 };
 
-// A low three-quarter view from the right-hand corner of the yard: the veranda recedes to the left,
-// pillar after pillar. Then the walk swings round through the gate, up the steps and in at the door.
-const CAM = [
-  { p: [8.6, 1.6, 14.2], t: [-1.2, 2.85, 0.6], fov: 45 },
-  // through the middle of the gate (its pillars stand at x = 1.7 either side)
-  { p: [1.2, 1.55, 11.0], t: [0, 2.8, 0], fov: 46 },
-  { p: [0.1, 2.0, 6.0], t: [0, 2.7, -1], fov: 47 },
-  { p: [0.15, 2.45, 3.6], t: [0, 2.45, -6], fov: 52 },
-  { p: [0, 2.45, -1.8], t: [0, 2.3, -12], fov: 56 },
-];
+type V = [number, number, number];
+/** Kitten pose: position and heading; a null heading means "face the camera". */
+type K = [number, number, number, number | null] | "START";
+type Shot = { j: number; p: V; l: V; fov: number; k: K; stop?: string };
 
-// Where the kitten is at each point of the scroll: [progress, x, y, z, heading].
-// The first two entries are replaced at layout time with the top of the last letter.
-const KITTEN_PATH: [number, number, number, number, number][] = [
-  [0.0, 5, 0.6, 9, 0],
-  [0.14, 5, 0.6, 9, 0],
-  [0.25, 0.9, 0.0, 6.2, Math.PI],
-  [0.36, 1.1, 0.0, 5.0, Math.PI],
-  [0.44, 1.2, 0.9, 2.4, Math.PI],
-  [0.5, 1.55, 0.9, 1.0, -0.35],
-  [0.66, 1.55, 0.9, 1.0, -0.35],
-  [0.8, 0.5, 0.9, -1.4, Math.PI],
-  [1.0, 0.25, 0.9, -5.6, Math.PI],
-];
+const PI = Math.PI;
+// pillar pairs in the corridor (see interior.ts): bay centres
+const BAY_Z = [-27.2, -34.0, -40.8, -47.6];
+
+function buildShots(): Shot[] {
+  const shots: Shot[] = [
+    // ---- hero: the yard, the gate, the steps, the veranda, the door
+    { j: 0.0, p: [8.6, 1.6, 14.2], l: [-1.2, 2.85, 0.6], fov: 45, k: "START", stop: "hero" },
+    { j: 0.12, p: [8.6, 1.6, 14.2], l: [-1.2, 2.85, 0.6], fov: 45, k: "START", stop: "hero" },
+    { j: 0.32, p: [1.2, 1.55, 11.0], l: [0, 2.8, 0], fov: 46, k: [0.9, 0, 6.2, PI] },
+    { j: 0.5, p: [0.1, 2.0, 6.0], l: [0, 2.7, -1], fov: 47, k: [1.1, 0, 5.0, PI] },
+    { j: 0.66, p: [0.15, 2.45, 3.6], l: [0, 2.45, -6], fov: 52, k: [1.4, 0.9, 0.3, null], stop: "door" },
+    { j: 0.84, p: [0.15, 2.45, 3.6], l: [0, 2.45, -6], fov: 52, k: [1.4, 0.9, 0.3, null], stop: "door" },
+    { j: 1.0, p: [0, 2.4, -1.2], l: [0, 2.7, -10], fov: 56, k: [0.4, 0.9, -3.6, PI] },
+    // ---- experience: the carved hall, then the open courtyard with one stop per job
+    // looking up into the carved ceiling as you pass under it
+    { j: 1.12, p: [0, 2.1, -1.9], l: [0, 5.0, -6.5], fov: 62, k: [0.3, 0.9, -6.2, PI] },
+    { j: 1.24, p: [0, 2.6, -8.4], l: [0, 1.6, -16], fov: 56, k: [0.4, 0.9, -10.2, PI] },
+        // at each stop the kitten sits to the right of the panel, so its bubble never covers the text
+    { j: 1.36, p: [2.4, 2.5, -12.2], l: [-5.4, 2.4, -14.8], fov: 50, k: [-0.9, 0.48, -15.0, null], stop: "exp-0" },
+    { j: 1.52, p: [2.4, 2.5, -12.2], l: [-5.4, 2.4, -14.8], fov: 50, k: [-0.9, 0.48, -15.0, null], stop: "exp-0" },
+    { j: 1.66, p: [-2.4, 2.5, -15.2], l: [5.4, 2.4, -17.6], fov: 50, k: [1.9, 0.48, -14.85, null], stop: "exp-1" },
+    { j: 1.82, p: [-2.4, 2.5, -15.2], l: [5.4, 2.4, -17.6], fov: 50, k: [1.9, 0.48, -14.85, null], stop: "exp-1" },
+    { j: 2.0, p: [0, 2.5, -21.8], l: [0, 2.5, -30], fov: 54, k: [0.3, 0.9, -25.5, PI] },
+  ];
+  // ---- projects: the corridor, one stop per bay
+  BAY_Z.forEach((zc, i) => {
+    const j0 = 2 + i * 0.25;
+    const s: Omit<Shot, "j"> = { p: [0.9, 2.45, zc + 3.6], l: [-1.7, 2.2, zc - 0.4], fov: 52, k: [0.05, 0.9, zc + 0.4, null], stop: `bay-${i}` };
+    shots.push({ j: j0 + 0.06, ...s }, { j: j0 + 0.19, ...s });
+  });
+  shots.push({ j: 3.0, p: [0.6, 2.45, -49.6], l: [0, 2.3, -56], fov: 54, k: [0.2, 0.9, -50.6, PI] });
+  return shots;
+}
+
 const KITTEN_SCALE = 0.9;
-const DOOR_POINT = new THREE.Vector3(0, 2.2, 0);
 const WORD_DISTANCE = 5.6;
+const POOL = 4;
 
 export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): HouseRenderer {
   const quality = opts.quality ?? "high";
-  let mood: Mood = MOODS[opts.mode ?? "golden"];
+  let mode: LightMode = opts.mode ?? "golden";
+  let mood: Mood = MOODS[mode];
   const vpW = () => Math.max(1, canvas.clientWidth);
   const vpH = () => Math.max(1, canvas.clientHeight);
   const DPR_CAP = 1.5;
@@ -81,7 +111,7 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0xffffff, 0.02);
   scene.background = new THREE.Color();
-  const camera = new THREE.PerspectiveCamera(CAM[0].fov, vpW() / vpH(), 0.1, 260);
+  const camera = new THREE.PerspectiveCamera(45, vpW() / vpH(), 0.1, 260);
 
   // ---------------------------------------------------------------- sky
   const skyU = {
@@ -114,7 +144,6 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   const hemi = new THREE.HemisphereLight();
   scene.add(hemi);
   const sun = new THREE.DirectionalLight();
-  sun.target.position.set(0, 1, 3);
   sun.castShadow = true;
   sun.shadow.mapSize.set(quality === "high" ? 2048 : 1024, quality === "high" ? 2048 : 1024);
   Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 16, bottom: -16, near: 5, far: 90 });
@@ -122,31 +151,47 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   sun.shadow.bias = -0.0005;
   sun.shadow.normalBias = 0.03;
   scene.add(sun, sun.target);
-  // rim light from behind the house: catches the edges of the pillars and the kitten
   const keyLight = new THREE.PointLight(0xffffff, 0, 5, 2);
   scene.add(keyLight);
+  // warm light spilling from the bright courtyard back into the hall
+  const spill = new THREE.PointLight(0xffd8a8, 7, 10, 1.6);
+  spill.position.set(0, 3.4, -7.4);
+  scene.add(spill);
   const rim = new THREE.DirectionalLight();
-  rim.target.position.set(0, 1.5, 2);
   scene.add(rim, rim.target);
+  // a fixed pool of lamp lights, moved each frame to the lamps nearest the camera
+  const pool: THREE.PointLight[] = [];
+  for (let i = 0; i < POOL; i++) {
+    const l = new THREE.PointLight(0xffa858, 0, 8, 2);
+    scene.add(l);
+    pool.push(l);
+  }
 
   // ---------------------------------------------------------------- the world
   const house = buildHouse(scene, quality);
+  const interior = buildInterior(scene, house.mat, house.uTime, quality, opts.bays);
+  const lamps: Lamp[] = [...house.lamps, ...interior.lamps];
   const word = buildWordmark(scene, opts.word, opts.fontFamily);
-  const petals = buildPetals(scene, quality === "high" ? 60 : 30);
-  const beams = buildBeams(scene, sunDirection(MOODS.golden), quality);
+  const leaves = buildLeaves(scene, quality === "high" ? 26 : 14);
+  const beamSets = [
+    buildBeams(scene, sunDirection(MOODS.golden), quality, YARD_LANDINGS),
+    buildBeams(scene, new THREE.Vector3(-0.35, 0.9, 0.25).normalize(), quality, COURT_LANDINGS, 400),
+    buildBeams(scene, new THREE.Vector3(-0.82, 0.38, 0.12).normalize(), quality, corridorLandings(), 500),
+  ];
   const kitten = buildKitten(house.uTime);
   kitten.root.scale.setScalar(KITTEN_SCALE);
   scene.add(kitten.root);
 
   // haze slabs drifting across the yard, tinted to the mood
   const hazeTex = tex(glow("rgba(255,255,255,.55)", "rgba(255,255,255,.16)"), { clamp: true });
-  const hazeMat = new THREE.MeshBasicMaterial({ map: hazeTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, color: 0xffffff });
   const haze: THREE.Mesh[] = [];
   const rnd = mulberry32(66);
   for (let i = 0; i < 6; i++) {
     const s = 10 + rnd() * 12;
-    const h = new THREE.Mesh(new THREE.PlaneGeometry(s, s * 0.4), hazeMat.clone());
-    (h.material as THREE.MeshBasicMaterial).opacity = 0.04 + rnd() * 0.05;
+    const h = new THREE.Mesh(
+      new THREE.PlaneGeometry(s, s * 0.4),
+      new THREE.MeshBasicMaterial({ map: hazeTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false, opacity: 0.04 + rnd() * 0.05 })
+    );
     h.position.set(-14 + rnd() * 26, 0.8 + rnd() * 4, -10 + rnd() * 20);
     h.userData = { x0: h.position.x, sp: 0.05 + rnd() * 0.1, ph: rnd() * 6 };
     scene.add(h);
@@ -155,7 +200,8 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
 
   const post = createPost(renderer, scene, camera, { ...ALL_ON, ...opts.post });
 
-  // ---------------------------------------------------------------- mood
+  // ---------------------------------------------------------------- mood (blended every frame by depth)
+  const white = new THREE.Color(1, 1, 1);
   function applyMood(m: Mood) {
     mood = m;
     const sd = sunDirection(m);
@@ -176,46 +222,63 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     sun.position.copy(sun.target.position).addScaledVector(sd, 45);
     rim.color.set(m.rimColor);
     rim.intensity = m.rimIntensity;
-    rim.position.set(sd.x * 20, 8, -18);
-    if (house.branch) (house.branch.material as THREE.MeshBasicMaterial).color.set(m.sprig);
+    rim.target.position.copy(sun.target.position);
+    rim.position.set(sun.target.position.x + sd.x * 20, 8, sun.target.position.z - 18);
     keyLight.color.set(m.key.color);
     keyLight.intensity = m.key.intensity;
-    for (const l of house.lamps) {
-      l.flame.visible = m.lampsOn;
-      l.light.visible = m.lampsOn;
-    }
     house.glow.windows.emissiveIntensity = m.windowGlow;
     for (const f of house.glow.fanlights) f.emissiveIntensity = m.fanlightGlow;
-    beams.setOpacity(m.beams, m.beamColor);
-    for (const h of haze) (h.material as THREE.MeshBasicMaterial).color.set(m.fog).lerp(new THREE.Color(1, 1, 1), 0.5);
+    beamSets.forEach((b, i) => b.setOpacity(m.beams[i], m.beamColor));
+    for (const h of haze) (h.material as THREE.MeshBasicMaterial).color.set(m.fog).lerp(white, 0.5);
+    if (house.branch) (house.branch.material as THREE.MeshBasicMaterial).color.set(m.sprig);
     word.setGlow(m.letterGlow);
     post.setMood(m);
     renderer.toneMappingExposure = m.exposure;
-    sun.shadow.needsUpdate = true;
   }
-  applyMood(mood);
 
-  // ---------------------------------------------------------------- camera rig
-  const curveP = new THREE.CatmullRomCurve3(CAM.map((c) => new THREE.Vector3(...(c.p as [number, number, number]))), false, "catmullrom", 0.4);
-  const curveT = new THREE.CatmullRomCurve3(CAM.map((c) => new THREE.Vector3(...(c.t as [number, number, number]))), false, "catmullrom", 0.4);
-  const rig = { target: 0, prog: 0, mx: 0, my: 0, tmx: 0, tmy: 0, pointer: false, intro: 0 };
+  // ---------------------------------------------------------------- the path
+  const shots = buildShots();
+  // distinct camera points (holds repeat a point), so the spline never loops back on itself
+  const distinct: { p: THREE.Vector3; l: THREE.Vector3 }[] = [];
+  const shotIndex: number[] = [];
+  for (const s of shots) {
+    const last = distinct[distinct.length - 1];
+    const p = new THREE.Vector3(...s.p);
+    if (!last || last.p.distanceToSquared(p) > 1e-6) distinct.push({ p, l: new THREE.Vector3(...s.l) });
+    shotIndex.push(distinct.length - 1);
+  }
+  const curveP = new THREE.CatmullRomCurve3(distinct.map((d) => d.p), false, "centripetal");
+  const curveT = new THREE.CatmullRomCurve3(distinct.map((d) => d.l), false, "centripetal");
+  const lastJ = shots[shots.length - 1].j;
+
+  /** Which segment j falls in, and how far along it, eased at stops. */
+  function segment(j: number) {
+    j = clamp(j, 0, lastJ);
+    let i = 0;
+    while (i < shots.length - 2 && j > shots[i + 1].j) i++;
+    const a = shots[i];
+    const b = shots[i + 1];
+    let s = clamp((j - a.j) / Math.max(1e-6, b.j - a.j), 0, 1);
+    if (a.stop || b.stop) s = s * s * (3 - 2 * s);
+    return { i, s, a, b };
+  }
+
+  const rig = { target: 0, j: 0, mx: 0, my: 0, tmx: 0, tmy: 0, pointer: false, intro: 0 };
   const _p = new THREE.Vector3();
   const _t = new THREE.Vector3();
   const _d = new THREE.Vector3();
   let clock = 0;
 
-  /** Scroll progress to position along the walk: a short hold first, then the walk. */
-  const walkU = (p: number) => (p < 0.14 ? (p / 0.14) * 0.04 : 0.04 + ((p - 0.14) / 0.86) * 0.96);
-
-  function placeCamera(cam: THREE.PerspectiveCamera, p: number, live: boolean) {
-    const u = clamp(walkU(p), 0, 1);
+  function placeCamera(cam: THREE.PerspectiveCamera, j: number, live: boolean) {
+    const { i, s, a, b } = segment(j);
+    const di = shotIndex[i];
+    const dj = shotIndex[i + 1];
+    const u = (di + (dj > di ? s : 0)) / Math.max(1, distinct.length - 1);
     curveP.getPoint(u, _p);
     curveT.getPoint(u, _t);
-    const seg = u * (CAM.length - 1);
-    const i = Math.min(Math.floor(seg), CAM.length - 2);
-    let fov = lerp(CAM[i].fov, CAM[i + 1].fov, seg - i);
-    // on a squarer frame, step back and widen rather than crop the house
-    const nf = clamp((1.62 - cam.aspect) / 1.05, 0, 1) * (1 - smooth(0.3, 0.7, u));
+    let fov = lerp(a.fov, b.fov, s);
+    // on a squarer frame at the start, step back and widen rather than crop the house
+    const nf = clamp((1.62 - cam.aspect) / 1.05, 0, 1) * (1 - smooth(0.3, 0.7, j));
     if (nf > 0) {
       _d.subVectors(_p, _t).normalize();
       _p.addScaledVector(_d, nf * 4);
@@ -223,21 +286,19 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
       fov *= 1 + nf * 0.3;
     }
     if (live) {
-      // the opening dolly: a slightly longer lens easing in
       const io = 1 - rig.intro;
       _p.addScaledVector(_d.subVectors(_p, _t).normalize(), io * 2.2);
       fov += io * 4;
-      // a slow hand-held drift, strongest while standing still at the start
-      const hold = 1 - smooth(0.04, 0.3, u) * 0.7;
-      _p.x += Math.sin(clock * 0.23) * 0.14 * hold;
-      _p.y += Math.sin(clock * 0.19 + 1.3) * 0.05 * hold;
-      _p.z += Math.cos(clock * 0.17) * 0.1 * hold;
-      _t.y += Math.sin(clock * 0.13 + 0.4) * 0.05 * hold;
-      // mouse parallax: the camera leans the way the cursor goes, the target a little the other way
-      _p.x += rig.mx * 0.6 * hold;
-      _p.y += rig.my * 0.22 * hold;
-      _t.x -= rig.mx * 0.25 * hold;
-      _t.y -= rig.my * 0.12 * hold;
+      // a slow hand-held drift, and mouse parallax; both calmer once you are inside
+      const amt = j < 0.3 ? 1 - smooth(0.04, 0.3, j) * 0.7 : 0.3;
+      _p.x += Math.sin(clock * 0.23) * 0.14 * amt;
+      _p.y += Math.sin(clock * 0.19 + 1.3) * 0.05 * amt;
+      _p.z += Math.cos(clock * 0.17) * 0.1 * amt;
+      _t.y += Math.sin(clock * 0.13 + 0.4) * 0.05 * amt;
+      _p.x += rig.mx * 0.6 * amt;
+      _p.y += rig.my * 0.22 * amt;
+      _t.x -= rig.mx * 0.25 * amt;
+      _t.y -= rig.my * 0.12 * amt;
     }
     cam.position.copy(_p);
     cam.lookAt(_t);
@@ -247,23 +308,21 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     }
   }
 
-  const heroCam = new THREE.PerspectiveCamera(CAM[0].fov, vpW() / vpH(), 0.1, 260);
+  // ---------------------------------------------------------------- hero layout (name, kitten start, sprig)
+  const heroCam = new THREE.PerspectiveCamera(45, vpW() / vpH(), 0.1, 260);
+  const kStart: [number, number, number, number] = [5, 0.6, 9, 0];
   function layoutHero() {
     heroCam.aspect = vpW() / vpH();
     placeCamera(heroCam, 0, false);
     heroCam.updateProjectionMatrix();
     heroCam.updateMatrixWorld(true);
     word.layout(heroCam, WORD_DISTANCE, 0.74);
-    const { yaw } = word.placed;
-    // the kitten starts on top of the last letter, facing the camera
+    // the kitten starts on top of the last letter, its paws on the stroke, facing the camera
     const top = word.letterTop(opts.word.length - 1, new THREE.Vector3());
-    for (const k of [0, 1]) {
-      KITTEN_PATH[k][1] = top.x;
-      KITTEN_PATH[k][2] = top.y;
-      KITTEN_PATH[k][3] = top.z;
-      KITTEN_PATH[k][4] = yaw;
-    }
-    // the jasmine sprig hangs into the top-right corner, about a metre from the lens
+    kStart[0] = top.x;
+    kStart[1] = top.y + 0.035;
+    kStart[2] = top.z;
+    kStart[3] = word.placed.yaw;
     if (house.branch) {
       const fwd = heroCam.getWorldDirection(new THREE.Vector3());
       const right = new THREE.Vector3().crossVectors(fwd, heroCam.up).normalize();
@@ -273,31 +332,58 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     }
   }
 
-  // ---------------------------------------------------------------- kitten path
+  // ---------------------------------------------------------------- kitten along the path
   const kPos = new THREE.Vector3();
   const kPrev = new THREE.Vector3();
   let kHeading = 0;
   let gait = 0;
+  const pose = (k: K): [number, number, number, number | null] => (k === "START" ? kStart : k);
 
-  function kittenAt(p: number, out: THREE.Vector3) {
-    let a = KITTEN_PATH[0];
-    let b = KITTEN_PATH[KITTEN_PATH.length - 1];
-    for (let i = 0; i < KITTEN_PATH.length - 1; i++) {
-      if (p >= KITTEN_PATH[i][0] && p <= KITTEN_PATH[i + 1][0]) {
-        a = KITTEN_PATH[i];
-        b = KITTEN_PATH[i + 1];
-        break;
-      }
-    }
-    const k = b[0] > a[0] ? clamp((p - a[0]) / (b[0] - a[0]), 0, 1) : 1;
-    const e = easeInOut(k);
-    out.set(lerp(a[1], b[1], e), lerp(a[2], b[2], e), lerp(a[3], b[3], e));
-    // hop when the height changes (down from the letter, up the steps)
-    if (Math.abs(b[2] - a[2]) > 0.05) out.y += Math.sin(k * Math.PI) * 0.45;
-    let dh = b[4] - a[4];
-    while (dh > Math.PI) dh -= Math.PI * 2;
-    while (dh < -Math.PI) dh += Math.PI * 2;
-    return a[4] + dh * Math.min(1, k * 3);
+  function kittenAt(j: number, out: THREE.Vector3) {
+    const { s, a, b } = segment(j);
+    const ka = pose(a.k);
+    const kb = pose(b.k);
+    const e = easeInOut(s);
+    out.set(lerp(ka[0], kb[0], e), lerp(ka[1], kb[1], e), lerp(ka[2], kb[2], e));
+    // hop when the height changes (down from the letter, up the steps, down into the court)
+    if (Math.abs(kb[1] - ka[1]) > 0.05) out.y += Math.sin(s * PI) * 0.45;
+    const face = (h: number | null) => (h === null ? Math.atan2(camera.position.x - out.x, camera.position.z - out.z) : h);
+    const ha = face(ka[3]);
+    const hb = face(kb[3]);
+    let dh = hb - ha;
+    while (dh > PI) dh -= PI * 2;
+    while (dh < -PI) dh += PI * 2;
+    return ha + dh * Math.min(1, s * 3);
+  }
+
+  // ---------------------------------------------------------------- panel anchors
+  type Anchor = { id: string; pos: THREE.Vector3; j: number; range: number };
+  const anchors: Anchor[] = [
+    ...experienceStops.map((j, i) => ({ id: `exp-${i}`, pos: interior.courtAnchors[i], j, range: 0.12 })),
+    ...interior.bays.map((b, i) => ({ id: b.id, pos: b.anchor, j: projectStop(i), range: 0.1 })),
+  ];
+  const frameState: FrameState = { anchors: anchors.map((a) => ({ id: a.id, x: 0, y: 0, a: 0 })), stop: null, resting: false };
+  let frameCb: ((s: FrameState) => void) | null = null;
+  const highlight = new Map<string, number>();
+  const tmp = new THREE.Vector3();
+  const tmp2 = new THREE.Vector3();
+
+  function updateAnchors() {
+    const w = vpW();
+    const h = vpH();
+    anchors.forEach((an, i) => {
+      const st = frameState.anchors[i];
+      const d = Math.abs(rig.j - an.j);
+      st.a = 1 - smooth(an.range * 0.55, an.range, d);
+      tmp.copy(an.pos).project(camera);
+      st.x = (tmp.x * 0.5 + 0.5) * w;
+      st.y = (-tmp.y * 0.5 + 0.5) * h;
+      if (tmp.z > 1) st.a = 0;
+    });
+    const { a, b, s } = segment(rig.j);
+    const holding = !!(a.stop && a.stop === b.stop);
+    frameState.stop = holding ? a.stop! : ((s < 0.5 ? a.stop : b.stop) ?? null);
+    frameState.resting = holding && gait < 0.3;
   }
 
   // ---------------------------------------------------------------- overlay and pointer
@@ -305,8 +391,6 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   const ray = new THREE.Raycaster();
   const look = new THREE.Vector3();
   const lookPlane = new THREE.Plane();
-  const tmp = new THREE.Vector3();
-  const tmp2 = new THREE.Vector3();
   const ndc = new THREE.Vector2();
 
   function updateOverlay() {
@@ -318,7 +402,7 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     tmp.project(camera);
     const px = (tmp.x * 0.5 + 0.5) * w;
     const py = (-tmp.y * 0.5 + 0.5) * h;
-    const rpx = (r / dist) * (h / 2 / Math.tan((camera.fov * Math.PI) / 360));
+    const rpx = (r / dist) * (h / 2 / Math.tan((camera.fov * PI) / 360));
     const visible = tmp.z < 1 && dist > 0.6;
     overlay.hit.style.transform = `translate(${(px - rpx).toFixed(1)}px, ${(py - rpx).toFixed(1)}px)`;
     overlay.hit.style.width = overlay.hit.style.height = `${(rpx * 2).toFixed(1)}px`;
@@ -326,34 +410,64 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     kitten.headTop(tmp2).project(camera);
     overlay.bubble.style.setProperty("--bx", `${((tmp2.x * 0.5 + 0.5) * w).toFixed(1)}px`);
     overlay.bubble.style.setProperty("--by", `${((-tmp2.y * 0.5 + 0.5) * h).toFixed(1)}px`);
-    overlay.bubble.dataset.visible = visible && rig.prog < 0.16 ? "true" : "false";
+    overlay.bubble.dataset.visible = visible && frameState.resting && frameState.stop !== "door" ? "true" : "false";
+  }
+
+  // ---------------------------------------------------------------- lamps: glow everywhere, real light near the camera
+  const lampScore: number[] = [];
+  const order: number[] = lamps.map((_, i) => i);
+  function updateLamps(dt: number) {
+    lamps.forEach((l, i) => {
+      const target = Math.max(mood.lamps, highlight.get(l.id ?? "") ?? 0);
+      l.boost = damp(l.boost ?? 0, target, 6, dt);
+      l.flame.visible = l.boost > 0.04;
+      const d2 = camera.position.distanceToSquared(l.pos);
+      lampScore[i] = l.boost > 0.04 ? l.boost / (1 + d2 * 0.04) : -1;
+    });
+    order.sort((a, b) => lampScore[b] - lampScore[a]);
+    pool.forEach((light, k) => {
+      const i = order[k];
+      const l = lamps[i];
+      if (!l || lampScore[i] <= 0) {
+        light.intensity = 0;
+        return;
+      }
+      const f = 0.84 + 0.1 * Math.sin(clock * (7.1 + i)) + 0.06 * Math.sin(clock * (13.7 + i * 2.3) + i);
+      light.position.copy(l.pos);
+      light.color.set(l.color);
+      light.intensity = l.base * (l.boost ?? 0) * f;
+    });
   }
 
   // ---------------------------------------------------------------- per-frame update
+  let reflections = true;
   function update(dt: number) {
     clock += dt;
     house.uTime.value = clock;
     rig.intro = damp(rig.intro, 1, 1.2, dt);
-    rig.prog = damp(rig.prog, rig.target, 5, dt);
+    rig.j = damp(rig.j, rig.target, 5, dt);
     rig.mx = damp(rig.mx, rig.pointer ? rig.tmx : 0, 2.2, dt);
     rig.my = damp(rig.my, rig.pointer ? rig.tmy : 0, 2.2, dt);
-    placeCamera(camera, rig.prog, true);
-    const p = rig.prog;
+    placeCamera(camera, rig.j, true);
+    const j = rig.j;
+
+    // light follows the walk; the sun's shadow box follows the camera
+    camera.getWorldDirection(_d);
+    sun.target.position.copy(camera.position).addScaledVector(_d, 6);
+    sun.target.position.y = 1;
+    applyMood(moodAt(mode, camera.position.z));
 
     // door swings inward as the camera reaches the veranda
-    const open = easeInOut(smooth(0.4, 0.68, p)) * 1.62;
+    const open = easeInOut(smooth(0.55, 0.8, j)) * 1.62;
     house.doorLeft.rotation.y = open;
     house.doorRight.rotation.y = -open;
-    house.courtyardLight.intensity = (open / 1.62) * 26;
-    debugState.prog = p;
-    debugState.open = open;
+    debugState.j = j;
 
     // the name and the foreground sheets dissolve as the camera walks through them
     word.setOpacity(smooth(1.0, 3.2, camera.position.distanceTo(word.placed.center)));
     for (const m of house.cutouts) {
       const d = camera.position.distanceTo(m.position);
       let a = smooth(0.5, 2.2, d);
-      // the sprig frames a wide screen; on a tall one it would drift into the middle of the picture
       if (m.userData.nearLens) a = camera.aspect < 1.2 ? 0 : 1 - smooth(1.6, 2.6, d);
       (m.material as THREE.Material).opacity = a;
       m.visible = a > 0.01;
@@ -361,23 +475,27 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     for (const h of haze) {
       h.position.x = h.userData.x0 + Math.sin(clock * h.userData.sp + h.userData.ph) * 4;
       h.quaternion.copy(camera.quaternion);
+      h.visible = camera.position.z > -2;
     }
-    // lamp flames flicker; their light breathes with them
-    house.lamps.forEach((l, i) => {
-      const f = 0.82 + 0.12 * Math.sin(clock * (7.1 + i)) + 0.08 * Math.sin(clock * (13.7 + i * 2.3) + i);
-      l.light.intensity = l.base * f;
-      l.flame.scale.y = 0.034 * (0.9 + 0.15 * f);
-    });
-    beams.update(clock, camera);
-    petals.update(dt, clock, camera);
+    // draw only the rooms you can see from here (saves hundreds of draw calls at the front door)
+    const cz = camera.position.z;
+    interior.zones.hall.visible = cz < 6 && j > 0.45;
+    interior.zones.court.visible = cz < 1;
+    interior.zones.corridor.visible = cz < -12;
+    house.root.visible = cz > -23;
+    // planar reflections only while in the corridor
+    if (interior.reflector) interior.reflector.visible = reflections && cz < -21;
+    updateLamps(dt);
+    for (const b of beamSets) b.update(clock, camera);
+    leaves.update(dt, clock, camera);
 
     // kitten: follow the path, turn to face where it is going, track the cursor when resting
     kPrev.copy(kPos);
-    const heading = kittenAt(p, kPos);
+    const heading = kittenAt(j, kPos);
     kitten.root.position.copy(kPos);
     let dh = heading - kHeading;
-    while (dh > Math.PI) dh -= Math.PI * 2;
-    while (dh < -Math.PI) dh += Math.PI * 2;
+    while (dh > PI) dh -= PI * 2;
+    while (dh < -PI) dh += PI * 2;
     kHeading += dh * (1 - Math.exp(-8 * dt));
     kitten.root.rotation.y = kHeading;
     const speed = dt > 0 ? kPrev.distanceTo(kPos) / dt : 0;
@@ -386,7 +504,6 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     if (gait < 0.3) {
       if (rig.pointer) {
         ray.setFromCamera(ndc.set(rig.tmx, rig.tmy), camera);
-        // a plane just in front of the kitten, facing the camera
         const toCam = tmp.subVectors(camera.position, kPos).normalize();
         lookPlane.setFromNormalAndCoplanarPoint(toCam, kPos.clone().addScaledVector(toCam, 1.5));
         target = ray.ray.intersectPlane(lookPlane, look);
@@ -395,10 +512,11 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
       }
     }
     kitten.update(dt, clock, target, gait);
-    // focus between the kitten and the door, so both stay sharp
-    kitten.headTop(post.focus).lerp(DOOR_POINT, 0.3);
+    // the kitten's own light, and focus between the kitten and what the camera looks at
     keyLight.position.copy(kPos).addScaledVector(tmp.subVectors(camera.position, kPos).normalize(), 1.4);
     keyLight.position.y += 1.1;
+    kitten.headTop(post.focus).lerp(_t, 0.3);
+    updateAnchors();
   }
 
   // ---------------------------------------------------------------- loop and adaptive quality
@@ -408,10 +526,10 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   let disposed = false;
   let readySent = false;
   const perf = { acc: 0, n: 0, warm: 0, level: 0 };
-  const debugState = { prog: 0, open: 0, level: () => perf.level, flags: () => post.flags(), bench: (frames?: number) => bench(frames) };
+  const debugState = { j: 0, level: () => perf.level, flags: () => post.flags(), bench: (frames?: number) => bench(frames), scene, renderer, post };
   if (/[?&](debug|bench)=1/.test(location.search)) (window as unknown as { __house: unknown }).__house = debugState;
 
-  // if frames are slow for a couple of seconds, give up the most expensive effects first
+  // if frames are slow for a couple of seconds, give up the most expensive extras first
   function adapt(dt: number) {
     perf.warm += dt;
     if (perf.warm < 3) return;
@@ -421,11 +539,12 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     const avg = perf.acc / perf.n;
     perf.acc = 0;
     perf.n = 0;
-    if (avg <= 1 / 45 || perf.level >= 3) return;
+    if (avg <= 1 / 45 || perf.level >= 4) return;
     perf.level++;
-    if (perf.level === 1) post.setFlags({ dof: false });
-    if (perf.level === 2) post.setFlags({ ao: false });
-    if (perf.level === 3) {
+    if (perf.level === 1) reflections = false;
+    if (perf.level === 2) post.setFlags({ dof: false });
+    if (perf.level === 3) post.setFlags({ ao: false });
+    if (perf.level === 4) {
       dpr = 1;
       resize();
     }
@@ -439,6 +558,7 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     update(dt);
     post.render(dt);
     updateOverlay();
+    frameCb?.(frameState);
     adapt(dt);
     if (!readySent) {
       readySent = true;
@@ -469,12 +589,12 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     camera.aspect = vpW() / vpH();
     camera.updateProjectionMatrix();
     layoutHero();
-    sun.shadow.needsUpdate = true;
   }
 
   /**
-   * Measures the GPU cost of each effect: renders a fixed number of frames per configuration and
-   * waits for the GPU to finish each one (gl.finish), so the timings are not capped by the display.
+   * Measures the GPU cost of each effect at the current camera position: renders a fixed number of
+   * frames per configuration and waits for the GPU each time (gl.finish), so timings are not capped
+   * by the display's refresh rate.
    */
   async function bench(frames = 90): Promise<BenchRow[]> {
     const wasRunning = running;
@@ -483,16 +603,6 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
     frame = 0;
     const gl = renderer.getContext();
     const saved = post.flags();
-    const steps: [string, Partial<PostFlags>, () => void][] = [
-      ["scene only, no post-processing", { post: false }, () => {}],
-      ["+ post pipeline (tone mapping)", { post: true, smaa: false, bloom: false, ao: false, dof: false, grade: false }, () => {}],
-      ["+ SMAA anti-aliasing", { smaa: true }, () => {}],
-      ["+ bloom", { bloom: true }, () => {}],
-      ["+ grade, vignette, grain", { grade: true }, () => {}],
-      ["+ ambient occlusion (N8AO, half res)", { ao: true }, () => {}],
-      ["+ depth of field", { dof: true }, () => {}],
-    ];
-    const rows: BenchRow[] = [];
     const measure = async () => {
       for (let i = 0; i < 20; i++) {
         update(1 / 60);
@@ -511,17 +621,24 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
       times.sort((a, b) => a - b);
       return times[Math.floor(times.length / 2)];
     };
+    const rows: BenchRow[] = [];
+    const steps: [string, Partial<PostFlags>][] = [
+      ["scene only, no post-processing", { post: false }],
+      ["+ post pipeline (tone mapping)", { post: true, smaa: false, bloom: false, ao: false, dof: false, grade: false }],
+      ["+ SMAA anti-aliasing", { smaa: true }],
+      ["+ bloom", { bloom: true }],
+      ["+ grade, vignette, grain", { grade: true }],
+      ["+ ambient occlusion (N8AO, half res)", { ao: true }],
+      ["+ depth of field", { dof: true }],
+    ];
     for (const [label, f] of steps) {
       post.setFlags(f);
       rows.push({ label, ms: await measure() });
     }
-    // scene layers, with everything on
-    beams.group.visible = false;
-    rows.push({ label: "all on, minus sun shafts and dust", ms: await measure() });
-    beams.setOpacity(mood.beams, mood.beamColor);
-    petals.mesh.visible = false;
-    rows.push({ label: "all on, minus petals", ms: await measure() });
-    petals.mesh.visible = true;
+    const wasRefl = reflections;
+    reflections = false;
+    rows.push({ label: "all on, minus floor reflections", ms: await measure() });
+    reflections = wasRefl;
     post.setFlags(saved);
     running = wasRunning;
     last = performance.now();
@@ -530,19 +647,38 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
   }
 
   resize();
-  last = performance.now();
-  schedule();
+  applyMood(moodAt(mode, 20));
+  // compile every shader up front, off the main thread where the browser supports it,
+  // so the first frame does not freeze the page while about 60 programs build
+  running = false;
+  renderer
+    .compileAsync(scene, camera)
+    .catch(() => undefined)
+    .finally(() => {
+      if (disposed) return;
+      running = true;
+      last = performance.now();
+      schedule();
+    });
 
   return {
-    setProgress: (p) => {
-      rig.target = clamp(p, 0, 1);
+    setJourney: (j) => {
+      rig.target = clamp(j, 0, lastJ);
     },
     setPointer: (nx, ny, active) => {
       rig.tmx = nx;
       rig.tmy = ny;
       rig.pointer = active;
     },
-    setLighting: (mode) => applyMood(MOODS[mode]),
+    setLighting: (m) => {
+      mode = m;
+    },
+    setHighlight: (id, on) => {
+      highlight.set(id, on ? 1 : 0);
+    },
+    onFrame: (cb) => {
+      frameCb = cb;
+    },
     swing: () => kitten.swing(),
     attachOverlay: (o) => {
       overlay = o;
@@ -575,4 +711,18 @@ export function createHouseRenderer(canvas: HTMLCanvasElement, opts: Options): H
       renderer.dispose();
     },
   };
+}
+
+// sun shafts falling from the open sky into the sunken court
+const COURT_LANDINGS: Landing[] = [
+  [-2.6, 0.47, -14.4, 1.6, 13],
+  [1.4, 0.47, -17.2, 2.0, 13],
+  [-0.6, 0.47, -20.2, 1.4, 13],
+];
+
+// low shafts raking in from the garden between each pair of corridor pillars
+function corridorLandings(): Landing[] {
+  const out: Landing[] = [];
+  for (let z = -27.2; z > -50; z -= 3.4) out.push([0.6, 0.92, z, 1.1, 10]);
+  return out;
 }

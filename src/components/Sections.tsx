@@ -1,6 +1,7 @@
 // The content sections. For now they sit on the plain page under the hero; later each one
 // gets its own scene in the house. Everything here comes from src/content.ts.
 import { certifications, contact, education, experience, featured, otherWork, person, secondary, skills } from "@/content";
+import { experienceStops, projectStop } from "@/lib/journey";
 
 export function Sections() {
   return (
@@ -10,8 +11,8 @@ export function Sections() {
           Experience
         </h2>
         <div className="jobs">
-          {experience.map((job) => (
-            <article key={job.company} className="job">
+          {experience.map((job, i) => (
+            <article key={job.company} className="job" data-anchor={`exp-${i}`} data-j={experienceStops[i]}>
               <h3>{job.company}</h3>
               <p className="meta">
                 {job.role}, {job.place}. {job.dates}
@@ -30,8 +31,8 @@ export function Sections() {
 
       <section id="projects" className="section" aria-labelledby="projects-title">
         <h2 id="projects-title">Selected projects</h2>
-        {featured.map((p) => (
-          <article key={p.slug} className="project">
+        {featured.map((p, i) => (
+          <article key={p.slug} className="project" data-anchor={p.slug} data-j={projectStop(i)}>
             <div className="project-text">
               <h3>{p.name}</h3>
               <p className="lead">{p.oneLine}</p>
@@ -72,6 +73,9 @@ export function Sections() {
           </article>
         ))}
       </section>
+
+      {/* in the tour, the walk through the house ends here and the page carries on below it */}
+      <div id="journey-end" aria-hidden="true" />
 
       <section id="other-work" className="section ledger" aria-labelledby="other-title">
         <div className="ledger-sheet">

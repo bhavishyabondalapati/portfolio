@@ -42,7 +42,21 @@ void main() {
   gl_FragColor = vec4(uColor * 1.8, uOpacity * across * along * shimmer * nearFade);
 }`;
 
-export function buildBeams(scene: THREE.Scene, sunDir: THREE.Vector3, quality: "high" | "low"): Beams {
+/** A shaft lands at (x, y, z) with this width and length, running back toward the sun. */
+export type Landing = [number, number, number, number, number];
+
+// where the yard's shafts land: between the veranda pillars, across the steps, and wide ones over the yard
+export const YARD_LANDINGS: Landing[] = [
+  [-3.1, 0.9, 1.6, 0.9, 7],
+  [-0.6, 0.9, 1.7, 1.1, 7],
+  [2.0, 0.9, 1.5, 0.9, 7],
+  [4.6, 0.9, 1.6, 0.8, 7],
+  [-6, 0.0, 9, 3.6, 18],
+  [-1.5, 0.0, 12, 3.0, 18],
+  [1.0, 0.0, 6.5, 2.4, 14],
+];
+
+export function buildBeams(scene: THREE.Scene, sunDir: THREE.Vector3, quality: "high" | "low", landings: Landing[] = YARD_LANDINGS, dustCount?: number): Beams {
   const group = new THREE.Group();
   scene.add(group);
   const uT = { value: 0 };
@@ -51,17 +65,6 @@ export function buildBeams(scene: THREE.Scene, sunDir: THREE.Vector3, quality: "
   const shafts: Shaft[] = [];
   const toSun = sunDir.clone().normalize();
 
-  // where each shaft lands: between the veranda pillars, across the steps, and two wide ones over the yard
-  const landings: [number, number, number, number, number][] = [
-    // x, y, z, width, length
-    [-3.1, 0.9, 1.6, 0.9, 7],
-    [-0.6, 0.9, 1.7, 1.1, 7],
-    [2.0, 0.9, 1.5, 0.9, 7],
-    [4.6, 0.9, 1.6, 0.8, 7],
-    [-6, 0.0, 9, 3.6, 18],
-    [-1.5, 0.0, 12, 3.0, 18],
-    [1.0, 0.0, 6.5, 2.4, 14],
-  ];
   landings.forEach(([x, y, z, w, len], i) => {
     const center = new THREE.Vector3(x, y, z).addScaledVector(toSun, len / 2);
     const mat = new THREE.ShaderMaterial({
@@ -81,7 +84,7 @@ export function buildBeams(scene: THREE.Scene, sunDir: THREE.Vector3, quality: "
   });
 
   // dust motes, scattered inside the shafts and drifting slowly
-  const N = quality === "high" ? 900 : 350;
+  const N = dustCount ?? (quality === "high" ? 900 : 350);
   const pos = new Float32Array(N * 3);
   const seed = new Float32Array(N);
   const rnd = mulberry32(77);

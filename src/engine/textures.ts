@@ -331,52 +331,36 @@ export function kolam(): HTMLCanvasElement {
   return c;
 }
 
-/** One jasmine petal: creamy white with a faint yellow heart. */
-export function petal(): HTMLCanvasElement {
+/** A single drifting leaf (neem or mango): long, pointed, with a pale midrib. */
+export function driftLeaf(): HTMLCanvasElement {
   const W = 64;
-  const c = canvas(W, W);
+  const H = 160;
+  const c = canvas(W, H);
   const x = ctx2d(c);
-  x.fillStyle = "#fbf8ef";
+  x.fillStyle = "#ffffff";
   x.beginPath();
-  x.moveTo(W / 2, W * 0.95);
-  x.bezierCurveTo(W * 0.05, W * 0.6, W * 0.2, W * 0.06, W / 2, W * 0.04);
-  x.bezierCurveTo(W * 0.8, W * 0.06, W * 0.95, W * 0.6, W / 2, W * 0.95);
+  x.moveTo(W / 2, H * 0.98);
+  x.bezierCurveTo(W * 0.02, H * 0.7, W * 0.12, H * 0.2, W / 2, H * 0.02);
+  x.bezierCurveTo(W * 0.88, H * 0.2, W * 0.98, H * 0.7, W / 2, H * 0.98);
   x.fill();
-  x.fillStyle = "rgba(236,214,140,.55)";
+  // the midrib and a few veins, lighter than the blade (instance colours tint the white)
+  x.strokeStyle = "rgba(0,0,0,.18)";
+  x.lineWidth = 2;
   x.beginPath();
-  x.ellipse(W / 2, W * 0.86, W * 0.08, W * 0.12, 0, 0, TAU);
-  x.fill();
-  return c;
-}
-
-function leaf(x: CanvasRenderingContext2D, px: number, py: number, s: number, a: number, r: () => number) {
-  x.save();
-  x.translate(px, py);
-  x.rotate(a);
-  const g = 50 + r() * 30;
-  x.fillStyle = `rgb(${(g * 0.55) | 0},${(g * 1.05) | 0},${(g * 0.45) | 0})`;
-  x.beginPath();
-  x.moveTo(0, 0);
-  x.quadraticCurveTo(s * 0.45, s * 0.25, 0, s);
-  x.quadraticCurveTo(-s * 0.45, s * 0.25, 0, 0);
-  x.fill();
-  x.fillStyle = "rgba(200,230,150,.12)";
-  x.fillRect(-0.5, 0, 1, s * 0.9);
-  x.restore();
-}
-
-function flower(x: CanvasRenderingContext2D, px: number, py: number, s: number) {
-  x.fillStyle = "#fdfbf3";
-  for (let k = 0; k < 5; k++) {
-    const a = (k / 5) * TAU;
+  x.moveTo(W / 2, H * 0.97);
+  x.lineTo(W / 2, H * 0.05);
+  x.stroke();
+  x.lineWidth = 1;
+  for (let i = 1; i < 8; i++) {
+    const y = H * (0.12 + i * 0.1);
     x.beginPath();
-    x.ellipse(px + Math.cos(a) * s * 0.55, py + Math.sin(a) * s * 0.55, s * 0.5, s * 0.24, a, 0, TAU);
-    x.fill();
+    x.moveTo(W / 2, y);
+    x.lineTo(W * 0.18, y - 10);
+    x.moveTo(W / 2, y);
+    x.lineTo(W * 0.82, y - 10);
+    x.stroke();
   }
-  x.fillStyle = "#e9d48a";
-  x.beginPath();
-  x.arc(px, py, s * 0.18, 0, TAU);
-  x.fill();
+  return c;
 }
 
 /**
@@ -430,46 +414,6 @@ export function treeline(seed = 23, w = 2048, h = 256): HTMLCanvasElement {
     x.fill();
   }
   x.fillRect(0, h * 0.72, w, h * 0.28);
-  return c;
-}
-
-/** Distant coconut palm silhouette against the sky. */
-export function palm(seed: number, w = 512, h = 1024): HTMLCanvasElement {
-  const c = canvas(w, h);
-  const x = ctx2d(c);
-  const r = mulberry32(seed);
-  const lean = (r() - 0.5) * 0.25;
-  const topX = w / 2 + lean * h;
-  const topY = h * 0.18;
-  x.strokeStyle = "#6b7a6a";
-  x.lineWidth = 12;
-  x.lineCap = "round";
-  x.beginPath();
-  x.moveTo(w / 2, h);
-  x.quadraticCurveTo(w / 2 + lean * h * 0.2, h * 0.55, topX, topY);
-  x.stroke();
-  x.strokeStyle = "#5d6e5c";
-  for (let k = 0; k < 11; k++) {
-    const a = -Math.PI / 2 + ((k / 10) - 0.5) * Math.PI * 1.7 + (r() - 0.5) * 0.2;
-    const len = w * (0.32 + r() * 0.14);
-    const ex = topX + Math.cos(a) * len;
-    const ey = topY + Math.sin(a) * len * 0.55 + len * 0.35;
-    x.lineWidth = 5;
-    x.beginPath();
-    x.moveTo(topX, topY);
-    x.quadraticCurveTo(topX + Math.cos(a) * len * 0.6, topY + Math.sin(a) * len * 0.5 - 20, ex, ey);
-    x.stroke();
-    // leaflets
-    x.lineWidth = 2;
-    for (let q = 0.2; q < 1; q += 0.07) {
-      const qx = topX + (ex - topX) * q;
-      const qy = topY + (ey - topY) * q - Math.sin(q * Math.PI) * 18;
-      x.beginPath();
-      x.moveTo(qx, qy);
-      x.lineTo(qx + (r() - 0.5) * 10, qy + 22 * (1 - q * 0.4));
-      x.stroke();
-    }
-  }
   return c;
 }
 
@@ -565,3 +509,206 @@ export function capeCloth(): HTMLCanvasElement {
   return c;
 }
 
+
+/** Athangudi floor tile: a yellow ground with a cream medallion and red and green accents (2x2 tiles). */
+export function athangudi(): Surface {
+  const W = 512;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  const T = W / 2;
+  for (let j = 0; j < 2; j++) {
+    for (let i = 0; i < 2; i++) {
+      const ox = i * T;
+      const oy = j * T;
+      x.fillStyle = "#d8a43c";
+      x.fillRect(ox, oy, T, T);
+      const cx = ox + T / 2;
+      const cy = oy + T / 2;
+      for (let k = 0; k < 12; k++) {
+        const a = (k / 12) * TAU;
+        x.save();
+        x.translate(cx, cy);
+        x.rotate(a);
+        x.fillStyle = "#f3e6c4";
+        x.beginPath();
+        x.ellipse(0, -T * 0.22, T * 0.06, T * 0.16, 0, 0, TAU);
+        x.fill();
+        x.restore();
+      }
+      x.fillStyle = "#b8452c";
+      x.beginPath();
+      x.arc(cx, cy, T * 0.07, 0, TAU);
+      x.fill();
+      // quarter flowers in the corners join into a pattern across tiles
+      for (const [qx, qy] of [[ox, oy], [ox + T, oy], [ox, oy + T], [ox + T, oy + T]]) {
+        x.fillStyle = "#3f6b4a";
+        x.beginPath();
+        x.arc(qx, qy, T * 0.11, 0, TAU);
+        x.fill();
+      }
+      x.strokeStyle = "rgba(60,30,10,.35)";
+      x.lineWidth = 2;
+      x.strokeRect(ox + 1, oy + 1, T - 2, T - 2);
+    }
+  }
+  mottle(x, W, W, 12, 0.12, 6);
+  return { map: c };
+}
+
+/** The corridor floor from the reference: small terracotta, ochre and green tiles in a diamond lattice. */
+export function corridorTile(): Surface {
+  const W = 512;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  const n = 8;
+  const S = W / n;
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      x.fillStyle = (i + j) % 2 ? "#9c4a2c" : "#c98a3a";
+      x.fillRect(i * S, j * S, S, S);
+      x.fillStyle = (i + j) % 2 ? "#d9b46a" : "#7a3a24";
+      x.beginPath();
+      x.moveTo(i * S + S / 2, j * S + S * 0.18);
+      x.lineTo(i * S + S * 0.82, j * S + S / 2);
+      x.lineTo(i * S + S / 2, j * S + S * 0.82);
+      x.lineTo(i * S + S * 0.18, j * S + S / 2);
+      x.fill();
+      x.fillStyle = "#3d6650";
+      x.beginPath();
+      x.arc(i * S + S / 2, j * S + S / 2, S * 0.08, 0, TAU);
+      x.fill();
+    }
+  }
+  x.strokeStyle = "rgba(40,20,10,.4)";
+  x.lineWidth = 2;
+  for (let k = 0; k <= n; k++) {
+    x.beginPath();
+    x.moveTo(k * S, 0);
+    x.lineTo(k * S, W);
+    x.moveTo(0, k * S);
+    x.lineTo(W, k * S);
+    x.stroke();
+  }
+  mottle(x, W, W, 14, 0.1, 6);
+  return { map: c };
+}
+
+/** Blue and white tile dado for the lower walls. */
+export function blueDado(): HTMLCanvasElement {
+  const W = 256;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  const n = 4;
+  const S = W / n;
+  for (let j = 0; j < n; j++) {
+    for (let i = 0; i < n; i++) {
+      x.fillStyle = "#e9e4d6";
+      x.fillRect(i * S, j * S, S, S);
+      x.fillStyle = "#2c5f9a";
+      x.beginPath();
+      x.arc(i * S + S / 2, j * S + S / 2, S * 0.3, 0, TAU);
+      x.fill();
+      x.fillStyle = "#e9e4d6";
+      x.beginPath();
+      x.arc(i * S + S / 2, j * S + S / 2, S * 0.16, 0, TAU);
+      x.fill();
+      x.fillStyle = "#2c5f9a";
+      for (const [qx, qy] of [[0, 0], [S, 0], [0, S], [S, S]]) {
+        x.beginPath();
+        x.arc(i * S + qx, j * S + qy, S * 0.12, 0, TAU);
+        x.fill();
+      }
+      x.strokeStyle = "rgba(30,40,60,.3)";
+      x.strokeRect(i * S + 0.5, j * S + 0.5, S - 1, S - 1);
+    }
+  }
+  return c;
+}
+
+/** Granite slabs for the sunken court and the hall. */
+export function granite(seed = 81): Surface {
+  const W = 512;
+  const c = canvas(W, W);
+  const x = ctx2d(c);
+  x.fillStyle = "#8a847a";
+  x.fillRect(0, 0, W, W);
+  mottle(x, W, W, seed, 0.4, 32);
+  mottle(x, W, W, seed + 1, 0.25, 4);
+  x.strokeStyle = "rgba(30,28,24,.55)";
+  x.lineWidth = 3;
+  for (let k = 0; k <= 2; k++) {
+    x.beginPath();
+    x.moveTo(k * (W / 2), 0);
+    x.lineTo(k * (W / 2), W);
+    x.moveTo(0, k * (W / 2));
+    x.lineTo(W, k * (W / 2));
+    x.stroke();
+  }
+  return { map: c, normal: normalFromHeight(fbmCanvas(256, 256, seed + 5, 5, 16, 16, 1), 1.2) };
+}
+
+/** Painted base for the corridor pillars: a cream panel with a stylised pineapple and leaves. */
+export function pillarBase(): HTMLCanvasElement {
+  const W = 128;
+  const H = 192;
+  const c = canvas(W, H);
+  const x = ctx2d(c);
+  x.fillStyle = "#efe6cf";
+  x.fillRect(0, 0, W, H);
+  x.strokeStyle = "#3f6b4a";
+  x.lineWidth = 6;
+  x.strokeRect(6, 6, W - 12, H - 12);
+  x.fillStyle = "#d9a63a";
+  x.beginPath();
+  x.ellipse(W / 2, H * 0.62, W * 0.2, H * 0.17, 0, 0, TAU);
+  x.fill();
+  x.strokeStyle = "#b8452c";
+  x.lineWidth = 2;
+  for (let k = -3; k <= 3; k++) {
+    x.beginPath();
+    x.moveTo(W / 2 + k * 9 - 20, H * 0.48);
+    x.lineTo(W / 2 + k * 9 + 20, H * 0.78);
+    x.stroke();
+  }
+  x.fillStyle = "#3f6b4a";
+  for (let k = 0; k < 5; k++) {
+    x.save();
+    x.translate(W / 2, H * 0.46);
+    x.rotate(-0.9 + k * 0.45);
+    x.beginPath();
+    x.ellipse(0, -18, 6, 20, 0, 0, TAU);
+    x.fill();
+    x.restore();
+  }
+  return c;
+}
+
+function leaf(x: CanvasRenderingContext2D, px: number, py: number, s: number, a: number, r: () => number) {
+  x.save();
+  x.translate(px, py);
+  x.rotate(a);
+  const g = 50 + r() * 30;
+  x.fillStyle = `rgb(${(g * 0.55) | 0},${(g * 1.05) | 0},${(g * 0.45) | 0})`;
+  x.beginPath();
+  x.moveTo(0, 0);
+  x.quadraticCurveTo(s * 0.45, s * 0.25, 0, s);
+  x.quadraticCurveTo(-s * 0.45, s * 0.25, 0, 0);
+  x.fill();
+  x.fillStyle = "rgba(200,230,150,.12)";
+  x.fillRect(-0.5, 0, 1, s * 0.9);
+  x.restore();
+}
+
+function flower(x: CanvasRenderingContext2D, px: number, py: number, s: number) {
+  x.fillStyle = "#fdfbf3";
+  for (let k = 0; k < 5; k++) {
+    const a = (k / 5) * TAU;
+    x.beginPath();
+    x.ellipse(px + Math.cos(a) * s * 0.55, py + Math.sin(a) * s * 0.55, s * 0.5, s * 0.24, a, 0, TAU);
+    x.fill();
+  }
+  x.fillStyle = "#e9d48a";
+  x.beginPath();
+  x.arc(px, py, s * 0.18, 0, TAU);
+  x.fill();
+}
