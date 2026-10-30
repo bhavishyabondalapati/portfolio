@@ -91,7 +91,7 @@ Plain HTML on a flat dawn-sky colour: the top bar with **Skip the tour**, and th
 - **Hold:** all lamps lit.
 - **Panel:** "Write to me". Your email as the main button, a copy-email button, LinkedIn, GitHub. No phone, no form.
 - **Kitten:** waves.
-- **Speech:** "That's the tour. He answers email faster than I answer to my name."
+- **Speech:** "That's the tour. Bhavishya answers email faster than I answer to my name."
 
 ### Footer
 Your full name across the bottom of the dusk scene, then image and model credits and one small line. The kitten curls up and falls asleep.
