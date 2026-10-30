@@ -22,7 +22,7 @@ export function buildPetals(scene: THREE.Scene, count: number): Petals {
     emissive: 0xfff6e0,
     emissiveIntensity: 0.18,
   });
-  const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.075, 0.1), mat, count);
+  const mesh = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.1, 0.13), mat, count);
   mesh.frustumCulled = false;
   scene.add(mesh);
   const rnd = mulberry32(404);
@@ -32,7 +32,7 @@ export function buildPetals(scene: THREE.Scene, count: number): Petals {
       x: 0,
       y: 0,
       z: 0,
-      fall: 0.25 + rnd() * 0.45,
+      fall: 0.16 + rnd() * 0.3,
       sway: 0.4 + rnd() * 1.2,
       ph: rnd() * TAU,
       amp: 0.15 + rnd() * 0.5,

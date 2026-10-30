@@ -24,6 +24,7 @@ export function HouseTour() {
   const rendererRef = useRef<HouseRenderer | null>(null);
   const [ready, setReady] = useState(false);
   const [line, setLine] = useState(tour.lines.hero);
+  const [announce, setAnnounce] = useState("");
   const swingCount = useRef(0);
   const lineTimer = useRef<number>(0);
 
@@ -62,8 +63,13 @@ export function HouseTour() {
       }
       const { createHouseRenderer } = await import("@/engine/createHouseRenderer");
       if (cancelled || html.dataset.mode !== "tour") return;
+      // golden hour by default; dusk with the lamps lit in dark mode, or with ?light=dusk
+      const q = new URLSearchParams(location.search);
+      const dark = matchMedia("(prefers-color-scheme: dark)");
+      const mode = (q.get("light") as "golden" | "dusk" | null) ?? (dark.matches ? "dusk" : "golden");
+      const post = q.get("fx") === "off" ? { post: false } : undefined;
       try {
-        r = createHouseRenderer(canvas, { word: person.shortName, fontFamily: family, onReady: () => setReady(true) });
+        r = createHouseRenderer(canvas, { word: person.shortName, fontFamily: family, mode, post, onReady: () => setReady(true) });
       } catch {
         html.dataset.mode = "fast";
         return;
@@ -76,8 +82,10 @@ export function HouseTour() {
         const span = Math.max(1, rect.height - window.innerHeight);
         const p = -rect.top / span;
         r?.setProgress(p);
-        // the hero panel steps aside once the walk starts, and returns at the top
+        // the hero card steps aside once the walk starts; the top bar returns after the hero
         html.dataset.scrolled = String(p > 0.1 && p < 1);
+        html.dataset.pastHero = String(p >= 1);
+        html.style.setProperty("--tour-p", Math.min(1, Math.max(0, p)).toFixed(3));
       };
       const onMove = (e: PointerEvent) => {
         if (e.pointerType !== "mouse") return;
@@ -88,6 +96,10 @@ export function HouseTour() {
         r?.resize();
         onScroll();
       };
+      const onScheme = (e: MediaQueryListEvent) => {
+        if (!q.get("light")) r?.setLighting(e.matches ? "dusk" : "golden");
+      };
+      dark.addEventListener("change", onScheme);
       const io = new IntersectionObserver(([entry]) => r?.setRunning(entry.isIntersecting));
       io.observe(hero);
       window.addEventListener("scroll", onScroll, { passive: true });
@@ -98,6 +110,9 @@ export function HouseTour() {
       onScroll();
       cleanups.push(() => {
         delete html.dataset.scrolled;
+        delete html.dataset.pastHero;
+        html.style.removeProperty("--tour-p");
+        dark.removeEventListener("change", onScheme);
         io.disconnect();
         window.removeEventListener("scroll", onScroll);
         window.removeEventListener("pointermove", onMove);
@@ -123,7 +138,9 @@ export function HouseTour() {
   const onKitten = () => {
     rendererRef.current?.swing();
     const lines = tour.lines.swing;
-    setLine(lines[swingCount.current++ % lines.length]);
+    const next = lines[swingCount.current++ % lines.length];
+    setLine(next);
+    setAnnounce(`The kitten swings its sword: ${next}`);
     window.clearTimeout(lineTimer.current);
     lineTimer.current = window.setTimeout(() => setLine(tour.lines.hero), 2200);
   };
@@ -134,6 +151,9 @@ export function HouseTour() {
       <button ref={hitRef} type="button" className="kitten-hit" aria-label={tour.kittenLabel} onClick={onKitten} />
       <p ref={bubbleRef} className="kitten-bubble" aria-hidden="true" data-visible="false">
         {line}
+      </p>
+      <p className="sr-only" role="status">
+        {announce}
       </p>
     </div>
   );

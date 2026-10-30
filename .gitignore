@@ -13,3 +13,6 @@ out/
 next-env.d.ts
 # Reference images belong to other people; keep them local only
 docs/references/
+.impeccable/critique/
+# Resumes contain a phone number and personal details; never commit them
+docs/*.pdf

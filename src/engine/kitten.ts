@@ -90,16 +90,18 @@ export function buildKitten(uTime: { value: number }): Kitten {
   const pawR = sph(0.052, cream);
   grip.add(pawR);
   const sword = new THREE.Group();
+  // held slightly across the body, so the blade reads at a distance
+  sword.rotation.z = 0.32;
   grip.add(sword);
-  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.5, 0.008), steel);
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.5, 0.012), steel);
   blade.position.y = 0.3;
   sword.add(blade);
-  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.0226, 0.05, 4), steel);
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(0.0354, 0.07, 4), steel);
   tip.rotation.y = Math.PI / 4;
   tip.scale.z = 0.25;
-  tip.position.y = 0.575;
+  tip.position.y = 0.585;
   sword.add(tip);
-  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.022, 0.03), brass);
+  const guard = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.03, 0.035), brass);
   guard.position.y = 0.045;
   sword.add(guard);
   const hilt = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.09, 8), teak);

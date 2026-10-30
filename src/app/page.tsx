@@ -1,7 +1,7 @@
 import { HouseTour } from "@/components/HouseTour";
 import { Sections } from "@/components/Sections";
 import { SkipTourButton } from "@/components/SkipTourButton";
-import { person, tour } from "@/content";
+import { contact, person, tour } from "@/content";
 
 export default function Home() {
   return (
@@ -20,21 +20,36 @@ export default function Home() {
           <a href="#contact">Contact</a>
         </nav>
         <SkipTourButton />
+        <span className="tour-progress" aria-hidden="true" />
       </header>
 
       <main>
         <section id="top" className="hero" aria-labelledby="hero-title">
           <div className="hero-sticky">
             <picture className="hero-still">
+              <source media="(max-width: 1023px) and (prefers-color-scheme: dark)" srcSet="/stills/hero-dusk-mobile.webp" />
+              <source media="(prefers-color-scheme: dark)" srcSet="/stills/hero-dusk.webp" />
               <source media="(max-width: 1023px)" srcSet="/stills/hero-mobile.webp" />
               <img src="/stills/hero.webp" alt={tour.sceneAlt.hero} width={1600} height={1000} fetchPriority="high" />
             </picture>
             <div className="hero-panel">
               <h1 id="hero-title">{person.name}</h1>
+              <p className="hero-role">{person.role}</p>
               <p>{person.heroLine}</p>
-              <a className="button" href={person.heroAction.href}>
-                {person.heroAction.label}
-              </a>
+              <div className="hero-actions">
+                <a className="button" href={person.heroAction.href}>
+                  {person.heroAction.label}
+                </a>
+                <SkipTourButton />
+              </div>
+              <p className="hero-links">
+                <a href={`mailto:${contact.email}`}>Email</a>
+                {contact.links.map((l) => (
+                  <a key={l.href} href={l.href} rel="noopener noreferrer" target="_blank">
+                    {l.label}
+                  </a>
+                ))}
+              </p>
             </div>
           </div>
         </section>

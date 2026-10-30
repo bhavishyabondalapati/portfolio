@@ -26,8 +26,16 @@ export function SkipTourButton() {
       // private mode: the choice lasts for this visit only
     }
     d.dataset.mode = next;
-    window.scrollTo({ top: 0 });
     window.dispatchEvent(new Event(MODE_EVENT));
+    if (next === "fast") {
+      // skipping means arriving at the content, not at a second hero
+      requestAnimationFrame(() => {
+        document.getElementById("experience")?.scrollIntoView({ block: "start" });
+        document.getElementById("experience-title")?.focus({ preventScroll: true });
+      });
+    } else {
+      window.scrollTo({ top: 0 });
+    }
   };
 
   return (

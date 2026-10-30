@@ -6,7 +6,9 @@ export function Sections() {
   return (
     <div className="sections">
       <section id="experience" className="section" aria-labelledby="experience-title">
-        <h2 id="experience-title">Experience</h2>
+        <h2 id="experience-title" tabIndex={-1}>
+          Experience
+        </h2>
         <div className="jobs">
           {experience.map((job) => (
             <article key={job.company} className="job">

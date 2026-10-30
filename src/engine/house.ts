@@ -13,8 +13,16 @@ export type House = {
   courtyardLight: THREE.PointLight;
   courtyardGlow: THREE.Mesh;
   kolam: THREE.Mesh;
+  /** A jasmine sprig the renderer hangs right in front of the lens (out of focus). */
+  branch: THREE.Mesh | null;
+  /** Brass oil lamps: lit at dusk. */
+  lamps: Lamp[];
+  /** Materials that glow from inside at dusk. */
+  glow: { windows: THREE.MeshStandardMaterial; fanlights: THREE.MeshStandardMaterial[] };
   uTime: { value: number };
 };
+
+export type Lamp = { flame: THREE.Mesh; light: THREE.PointLight; base: number };
 
 const PLINTH = 0.9; // height of the thinnai platform
 const VERANDA_DEPTH = 3.2;
@@ -45,7 +53,10 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
     indigoBand: new THREE.MeshStandardMaterial({ color: 0x2b3a7a, roughness: 0.7 }),
     brass: new THREE.MeshStandardMaterial({ color: 0xc9a24a, roughness: 0.32, metalness: 0.85 }),
     dark: new THREE.MeshStandardMaterial({ color: 0x1b120c, roughness: 0.95 }),
+    windowGlow: new THREE.MeshStandardMaterial({ color: 0x1b120c, roughness: 0.95, emissive: 0xffa24a, emissiveIntensity: 0 }),
   };
+  const fanlights: THREE.MeshStandardMaterial[] = [];
+  const lamps: Lamp[] = [];
 
   const root = new THREE.Group();
   scene.add(root);
@@ -66,7 +77,7 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
     new THREE.MeshStandardMaterial({ map: tex(T.kolam(), { clamp: true }), transparent: true, roughness: 1, depthWrite: false })
   );
   kolamMesh.rotation.x = -Math.PI / 2;
-  kolamMesh.position.set(0, 0.012, 14.6);
+  kolamMesh.position.set(0, 0.012, 9.6);
   kolamMesh.receiveShadow = true;
   add(kolamMesh);
 
@@ -90,6 +101,7 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
   const pillarZ = VERANDA_DEPTH - 0.35;
   const pillarTop = PLINTH + 3.25;
   for (const px of pillarXs) add(pillar(px, pillarZ, PLINTH, pillarTop, mat));
+  for (const lx of [-5.65, -3.15, 3.15, 5.65]) add(oilLamp(lx, PLINTH, pillarZ - 0.25, mat, lamps, 1.6));
   add(box(16.4, 0.3, 0.32, mat.teak, 0, pillarTop + 0.15, pillarZ));
 
   // sloping veranda roof from the wall down to the beam, with the tile rows running across
@@ -213,7 +225,7 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
   add(box(16.6, 0.08, 0.52, mat.ochre, 0, upperY0 + upperH - 0.3, -0.86));
   // arched windows with coloured-glass fanlights, red pilasters between them
   const winXs = [-6.2, -3.1, 0, 3.1, 6.2];
-  winXs.forEach((wx, i) => add(archedWindow(wx, upperY0 + 0.75, -0.68, i, mat)));
+  winXs.forEach((wx, i) => add(archedWindow(wx, upperY0 + 0.75, -0.68, i, mat, fanlights)));
   for (let i = 0; i < winXs.length + 1; i++) {
     const px = -7.75 + i * 3.1;
     add(box(0.34, upperH - 0.5, 0.1, i % 2 ? mat.indigoBand : mat.redBand, px, upperY0 + upperH / 2, -0.66));
@@ -250,7 +262,7 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
   add(box(0.4, 9.5, 12, mat.plasterUpper, 8.4, 4.75, -6));
 
   // ---------------------------------------------------------------- front compound wall and gate
-  const wallZ = 9.3;
+  const wallZ = 7.4;
   const cwH = 0.62;
   const gateHalf = 1.7;
   const cwLen = 14;
@@ -260,40 +272,47 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
     // gate pillars with a little brass lamp niche
     add(box(0.55, 1.55, 0.55, mat.plaster, s * gateHalf, 0.775, wallZ));
     add(box(0.65, 0.12, 0.65, mat.redBand, s * gateHalf, 1.6, wallZ));
-    add(urn(s * gateHalf, 1.66, wallZ, mat, 0.6));
+    add(oilLamp(s * gateHalf, 1.66, wallZ, mat, lamps, 1.3));
   }
 
   // ---------------------------------------------------------------- palms behind the house
   const cutouts: THREE.Mesh[] = [];
-  const palmXs = [-13, -9.5, 11, 14.5];
-  palmXs.forEach((px, i) => {
-    const h = 14 + (i % 2) * 3;
+  // palms behind the house, and a grove off to the left of the yard for the low sun to stream through
+  const palms: [number, number, number][] = [
+    [-13, -10, 14],
+    [-9.5, -12, 17],
+    [11, -14, 14],
+    [14.5, -16, 17],
+    [-10, 4, 14],
+    [-12.5, 0, 16],
+    [-15, -3, 13],
+  ];
+  palms.forEach(([px, pz, h], i) => {
     const p = new THREE.Mesh(new THREE.PlaneGeometry(h * 0.5, h), cutoutMaterial(T.palm(i + 3), 0.02, uTime));
-    p.position.set(px, h / 2 - 0.2, -10 - i * 2);
+    p.position.set(px, h / 2 - 0.2, pz);
+    p.rotation.y = 0.5;
+    p.castShadow = i >= 4;
     add(p);
   });
 
+  // a far treeline closing the horizon
+  const trees = new THREE.Mesh(new THREE.PlaneGeometry(160, 20), cutoutMaterial(T.treeline(), 0.01, uTime));
+  trees.position.set(0, 9.5, -48);
+  add(trees);
+
   // ---------------------------------------------------------------- foreground cut-outs (sway, then dissolve)
-  // a low marigold border in front of the giant name, hiding its feet
-  const band = new THREE.Mesh(new THREE.PlaneGeometry(22, 0.75, 24, 2), cutoutMaterial(T.flowerBand(7), 0.03, uTime));
-  band.position.set(0, 0.3, 11.5);
-  band.renderOrder = 20;
-  add(band);
-  cutouts.push(band);
-  // jasmine creeper hanging into the top corners of the frame, close to the lens
+  // one jasmine sprig hung right in front of the lens; depth of field turns it into soft bokeh
+  let branch: THREE.Mesh | null = null;
   if (quality === "high") {
-    const cl = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7, 10, 10), cutoutMaterial(T.creeper(13), 0.05, uTime, "top"));
-    cl.position.set(-2.05, 4.35, 19.6);
-    cl.renderOrder = 22;
-    cl.userData.nearLens = true;
-    add(cl);
-    cutouts.push(cl);
-    const cr = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5, 10, 10), cutoutMaterial(T.creeper(29), 0.05, uTime, "top"));
-    cr.position.set(2.15, 4.4, 19.4);
-    cr.renderOrder = 22;
-    cr.userData.nearLens = true;
-    add(cr);
-    cutouts.push(cr);
+    // unlit, so the flowers stay cream instead of picking up the blue sky; the renderer tints it per mood
+    branch = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.2, 1.2),
+      new THREE.MeshBasicMaterial({ map: tex(T.sprig(), { clamp: true }), transparent: true, depthWrite: false, fog: false })
+    );
+    branch.renderOrder = 22;
+    branch.userData.nearLens = true;
+    add(branch);
+    cutouts.push(branch);
   }
 
   // box() and the builders already cast shadows; everything solid also receives them
@@ -302,7 +321,7 @@ export function buildHouse(scene: THREE.Scene, quality: "high" | "low"): House {
     if (m.isMesh && !cutouts.includes(m) && m !== courtyardGlow) m.receiveShadow = true;
   });
 
-  return { doorLeft, doorRight, cutouts, courtyardLight, courtyardGlow, kolam: kolamMesh, uTime };
+  return { doorLeft, doorRight, cutouts, courtyardLight, courtyardGlow, kolam: kolamMesh, branch, lamps, glow: { windows: mat.windowGlow, fanlights }, uTime };
 }
 
 // ------------------------------------------------------------------ builders
@@ -365,7 +384,7 @@ function barredWindow(x: number, y: number, mat: Mats) {
   const g = new THREE.Group();
   const w = 1.1;
   const h = 1.5;
-  const back = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat.dark);
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat.windowGlow);
   back.position.set(0, h / 2, 0.005);
   g.add(back);
   const frame = [
@@ -389,20 +408,15 @@ function barredWindow(x: number, y: number, mat: Mats) {
   return g;
 }
 
-function archedWindow(x: number, y: number, z: number, seed: number, mat: Mats) {
+function archedWindow(x: number, y: number, z: number, seed: number, mat: Mats, fanlights: THREE.MeshStandardMaterial[]) {
   const g = new THREE.Group();
   const w = 1.25;
   const h = 1.7;
   const r = w / 2;
-  const fan = new THREE.Mesh(
-    new THREE.CircleGeometry(r, 24, 0, Math.PI),
-    new THREE.MeshStandardMaterial({
-      map: tex(T.fanlight(seed), { clamp: true }),
-      emissive: 0x6b4a20,
-      emissiveIntensity: 0.25,
-      roughness: 0.25,
-    })
-  );
+  const fanTex = tex(T.fanlight(seed), { clamp: true });
+  const fanMat = new THREE.MeshStandardMaterial({ map: fanTex, emissive: 0xffffff, emissiveMap: fanTex, emissiveIntensity: 0.15, roughness: 0.25 });
+  fanlights.push(fanMat);
+  const fan = new THREE.Mesh(new THREE.CircleGeometry(r, 24, 0, Math.PI), fanMat);
   // CircleGeometry UVs are planar, so the half-disc maps onto the top half of the texture
   const uv = fan.geometry.attributes.uv as THREE.BufferAttribute;
   for (let i = 0; i < uv.count; i++) uv.setY(i, uv.getY(i) * 2 - 1);
@@ -428,6 +442,31 @@ function archedWindow(x: number, y: number, z: number, seed: number, mat: Mats) 
     o.castShadow = true;
     o.receiveShadow = true;
   });
+  return g;
+}
+
+/** A brass kuthu vilakku: turned stand, shallow bowl, a flame and a warm point light (off until dusk). */
+function oilLamp(x: number, y: number, z: number, mat: Mats, lamps: Lamp[], scale = 1) {
+  const g = new THREE.Group();
+  const pts: [number, number][] = [
+    [0.0, 0], [0.11, 0], [0.11, 0.02], [0.05, 0.04], [0.02, 0.07], [0.02, 0.2], [0.04, 0.22], [0.02, 0.24],
+    [0.018, 0.36], [0.035, 0.38], [0.02, 0.4], [0.09, 0.43], [0.1, 0.46], [0.0, 0.45],
+  ];
+  const stand = new THREE.Mesh(new THREE.LatheGeometry(pts.map(([r, h]) => new THREE.Vector2(r, h)), 18), mat.brass);
+  stand.castShadow = true;
+  g.add(stand);
+  const flame = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(5, 2.6, 0.9) }));
+  flame.scale.set(0.014, 0.034, 0.014);
+  flame.position.set(0.075, 0.49, 0);
+  flame.visible = false;
+  g.add(flame);
+  const light = new THREE.PointLight(0xffa858, 0, 9, 2);
+  light.position.set(0.075, 0.55, 0.05);
+  light.visible = false;
+  g.add(light);
+  g.position.set(x, y, z);
+  g.scale.setScalar(scale);
+  lamps.push({ flame, light, base: 14 });
   return g;
 }
 

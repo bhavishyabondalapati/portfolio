@@ -27,6 +27,9 @@ test("every featured project has problem, built, result, stack and a link", () =
 
 test("hero shows name, role line and one action", () => {
   assert.equal(content.person.name, "Bhavishya Bondalapati");
-  assert.ok(content.person.heroLine.includes("May 2027"));
+  // non-breaking spaces keep "May 2027" on one line; compare with plain spaces
+  const line = content.person.heroLine.replace(/\u00a0/g, " ");
+  assert.ok(line.includes("May 2027"));
+  assert.ok(line.includes("full-stack"));
   assert.ok(content.person.heroAction.href.startsWith("#"));
 });

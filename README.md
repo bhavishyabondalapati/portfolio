@@ -19,7 +19,7 @@ npm run typecheck
 npm run build      # static site in out/
 ```
 
-Useful URL flags: `?tour=on` forces the 3D tour at any width, `?tour=off` the fast page, `?capture=1` hides the interface (used to render the stills in `public/stills/`), `?debug=1` exposes `window.__house`.
+Useful URL flags: `?tour=on` forces the 3D tour at any width, `?tour=off` the fast page, `?light=golden` or `?light=dusk` picks the lighting (dark mode picks dusk by default), `?fx=off` turns post-processing off, `?bench=1` exposes `window.__house.bench()` for per-effect timings, `?capture=1` hides the interface (used to render the stills in `public/stills/`), `?debug=1` exposes `window.__house`.
 
 ## Where things are
 

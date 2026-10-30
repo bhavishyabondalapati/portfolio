@@ -59,7 +59,7 @@ export const person = {
   lookingFor: "Looking for ML systems, backend and full-stack roles.",
   location: "Boston, MA",
   // The one sentence under the name on the first screen.
-  heroLine: "ML systems and backend engineer. MS Computer Science at Northeastern, GPA 3.9, graduating May 2027.",
+  heroLine: "MS\u00a0Computer Science at Northeastern, GPA\u00a03.9, graduating May\u00a02027. Open to ML systems, backend and full-stack roles.",
   heroAction: { label: "See the work", href: "#projects" },
 };
 
@@ -352,6 +352,7 @@ export const tour = {
   },
   // Scene descriptions for screen readers and the fast version's still images.
   sceneAlt: {
-    hero: "The front of a Chettinad house in morning light: a raised veranda with turned teak pillars, a carved teak door, and the name bhavishya standing in the front yard.",
+    hero: "The front of a Chettinad house at golden hour, seen from the corner of the yard: a raised veranda with turned teak pillars, a carved teak door, and the name bhavishya standing in the front yard.",
+    heroDusk: "The same Chettinad house at dusk, with brass oil lamps lit along the veranda and warm light in the windows.",
   },
 };

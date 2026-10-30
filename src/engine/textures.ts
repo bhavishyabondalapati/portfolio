@@ -349,39 +349,6 @@ export function petal(): HTMLCanvasElement {
   return c;
 }
 
-/**
- * The jasmine creeper cut-out that hangs into the top of the frame:
- * stems falling from the top edge, dark leaves, white star flowers.
- */
-export function creeper(seed: number, w = 1024, h = 1024): HTMLCanvasElement {
-  const c = canvas(w, h);
-  const x = ctx2d(c);
-  const r = mulberry32(seed);
-  const strands = 9;
-  for (let s = 0; s < strands; s++) {
-    let px = (s / strands) * w + r() * 60;
-    let py = -10;
-    const len = h * (0.35 + r() * 0.6);
-    x.strokeStyle = "#3b4a26";
-    x.lineWidth = 3 + r() * 2;
-    x.beginPath();
-    x.moveTo(px, py);
-    const pts: [number, number][] = [];
-    while (py < len) {
-      px += (r() - 0.5) * 26;
-      py += 14 + r() * 10;
-      x.lineTo(px, py);
-      pts.push([px, py]);
-    }
-    x.stroke();
-    for (const [lx, ly] of pts) {
-      if (r() > 0.25) leaf(x, lx, ly, 18 + r() * 16, (r() - 0.5) * 2.4 + (r() > 0.5 ? 0.9 : -0.9), r);
-      if (r() > 0.72) flower(x, lx + (r() - 0.5) * 30, ly + (r() - 0.5) * 20, 9 + r() * 6);
-    }
-  }
-  return c;
-}
-
 function leaf(x: CanvasRenderingContext2D, px: number, py: number, s: number, a: number, r: () => number) {
   x.save();
   x.translate(px, py);
@@ -413,31 +380,56 @@ function flower(x: CanvasRenderingContext2D, px: number, py: number, s: number) 
 }
 
 /**
- * A low border of marigolds and tulsi along the yard: a ragged band of small leaves
- * with orange and yellow flower heads. It hides the feet of the giant letters, like the grass in Kage.
+ * A jasmine sprig for the very front of the frame: one stem curving in from the top-right corner,
+ * paired leaves, and clusters of white flowers. Depth of field turns it into soft shapes.
  */
-export function flowerBand(seed: number, w = 2048, h = 128, leafSize = 9): HTMLCanvasElement {
+export function sprig(seed = 17, w = 1024, h = 1024): HTMLCanvasElement {
   const c = canvas(w, h);
   const x = ctx2d(c);
   const r = mulberry32(seed);
-  const n = Math.round((w * h) / (leafSize * leafSize * 1.6));
-  for (let i = 0; i < n; i++) {
-    const px = r() * w;
-    const top = h * (0.18 + 0.4 * (0.5 + 0.5 * Math.sin(px / 41 + seed) * Math.sin(px / 13)));
-    const py = top + r() * (h - top);
-    leaf(x, px, py, leafSize * (0.8 + r() * 0.9), r() * TAU, r);
+  const pts: [number, number][] = [];
+  for (let t = 0; t <= 1.0001; t += 0.02) {
+    pts.push([w * (0.98 - 0.62 * t + 0.08 * Math.sin(t * 5)), h * (0.02 + 0.78 * t * t + 0.1 * t)]);
   }
-  for (let i = 0; i < w / 14; i++) {
-    const px = r() * w;
-    const py = h * (0.22 + r() * 0.45);
-    const s = leafSize * (0.35 + r() * 0.3);
-    x.fillStyle = r() > 0.45 ? "#e0761f" : "#e9b42c";
-    for (let k = 0; k < 7; k++) {
-      x.beginPath();
-      x.arc(px + Math.cos(k) * s * 0.5, py + Math.sin(k) * s * 0.5, s * 0.55, 0, TAU);
-      x.fill();
+  x.strokeStyle = "#3a4424";
+  x.lineCap = "round";
+  x.lineWidth = 9;
+  x.beginPath();
+  pts.forEach(([px, py], i) => (i ? x.lineTo(px, py) : x.moveTo(px, py)));
+  x.stroke();
+  pts.forEach(([px, py], i) => {
+    if (i % 3 !== 0 || i === 0) return;
+    const k = i / pts.length;
+    const s = 70 - 30 * k;
+    leaf(x, px, py, s + r() * 20, 0.9 + (r() - 0.5) * 0.6, r);
+    leaf(x, px, py, s + r() * 20, -0.9 + (r() - 0.5) * 0.6, r);
+    if (i % 6 === 0) {
+      for (let f = 0; f < 4; f++) flower(x, px + (r() - 0.5) * 70, py + (r() - 0.2) * 60, 16 + r() * 10);
     }
+  });
+  // painted already out of focus: a real lens blurs something this close far more than a depth-of-field pass does
+  const soft = canvas(w, h);
+  const sx = ctx2d(soft);
+  sx.filter = "blur(6px)";
+  sx.drawImage(c, 0, 0);
+  return soft;
+}
+
+/** A far treeline of rain trees and palms that closes the horizon; fog turns it into a soft silhouette. */
+export function treeline(seed = 23, w = 2048, h = 256): HTMLCanvasElement {
+  const c = canvas(w, h);
+  const x = ctx2d(c);
+  const r = mulberry32(seed);
+  x.fillStyle = "#4c5a48";
+  for (let i = 0; i < 160; i++) {
+    const px = r() * w;
+    const rad = 18 + r() * 46;
+    const py = h - rad * (0.9 + r() * 0.9);
+    x.beginPath();
+    x.arc(px, py, rad, 0, TAU);
+    x.fill();
   }
+  x.fillRect(0, h * 0.72, w, h * 0.28);
   return c;
 }
 

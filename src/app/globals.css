@@ -38,12 +38,33 @@
   box-sizing: border-box;
 }
 
-html {
+/* smooth jumps on the fast page; in the tour a smooth jump would fast-forward the whole walk */
+html[data-mode="fast"] {
   scroll-behavior: smooth;
 }
 
+p,
+li {
+  text-wrap: pretty;
+}
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  html {
+  html[data-mode="fast"] {
     scroll-behavior: auto;
   }
 }
@@ -141,8 +162,42 @@ a {
   background: var(--ink);
   color: var(--ground);
 }
-html[data-eligible="false"] .skip {
+html[data-eligible="false"] .skip,
+html[data-mode="fast"] .hero-actions .skip {
   display: none;
+}
+
+/* at the start of the tour the scene is the whole screen; the bar (nav, Skip the tour, progress)
+   comes back the moment the walk starts, so there is always a way out */
+html[data-mode="tour"] .topbar {
+  transition:
+    opacity 300ms ease,
+    transform 300ms var(--ease-out),
+    visibility 0s;
+}
+html[data-mode="tour"]:not([data-scrolled="true"]):not([data-past-hero="true"]) .topbar {
+  opacity: 0;
+  transform: translateY(-100%);
+  pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity 300ms ease,
+    transform 300ms var(--ease-out),
+    visibility 0s 300ms;
+}
+.tour-progress {
+  display: none;
+}
+html[data-mode="tour"] .tour-progress {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  background: var(--accent);
+  transform-origin: left center;
+  transform: scaleX(var(--tour-p, 0));
 }
 
 /* ------------------------------------------------------------ hero */
@@ -194,10 +249,72 @@ html:has(.tour[data-ready="true"]) .hero-still img {
   font-size: var(--step-lead);
   line-height: 1.35;
 }
+.hero-panel .hero-role {
+  margin: 8px 0 0;
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* tour mode: a small card in the top-left corner, so the scene is the hero */
+html[data-mode="tour"] .hero-panel {
+  top: var(--gutter);
+  max-width: 21rem;
+  padding: 18px 20px 20px;
+}
+html[data-mode="tour"] .hero-panel h1 {
+  font-size: 1.75rem;
+  letter-spacing: -0.02em;
+}
+html[data-mode="tour"] .hero-panel p {
+  font-size: 1rem;
+  line-height: 1.4;
+  margin: 8px 0 16px;
+}
+html[data-mode="tour"] .hero-panel .hero-role {
+  font-size: 1.15rem;
+  margin: 4px 0 0;
+}
+html[data-mode="tour"] .hero-panel .button {
+  font-size: 1rem;
+  padding: 10px 18px;
+}
+/* the primary action is the filled one; skipping is a quiet text link beside it */
+.hero-actions {
+  align-items: center;
+}
+html[data-mode="tour"] .hero-actions .skip {
+  background: none;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  padding: 6px 4px;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.hero-links {
+  display: flex;
+  gap: 16px;
+  margin: 14px 0 0 !important;
+  font-size: var(--step-small) !important;
+}
+.hero-links a {
+  color: var(--muted);
+}
+.hero-links a:hover {
+  color: var(--ink);
+}
+/* once faded, the card also leaves the tab order (visibility flips after the fade) */
 html[data-scrolled="true"] .hero-panel {
   opacity: 0;
   transform: translateY(-16px);
   pointer-events: none;
+  visibility: hidden;
+  transition:
+    opacity 400ms var(--ease-out),
+    transform 400ms var(--ease-out),
+    visibility 0s 400ms;
 }
 
 /* ------------------------------------------------------------ the 3D tour layer */
@@ -210,8 +327,8 @@ html[data-mode="tour"] .tour {
 .tour-canvas {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   z-index: 0;
   display: block;
   opacity: 0;
@@ -234,8 +351,11 @@ html[data-mode="tour"] .tour {
   cursor: pointer;
   visibility: hidden;
 }
+/* two-tone ring: visible on the dark veranda and on the bright sky alike */
 .kitten-hit:focus-visible {
+  outline: 3px solid #f2f1ec;
   outline-offset: 0;
+  box-shadow: 0 0 0 6px #1b2342;
 }
 .kitten-bubble {
   position: fixed;

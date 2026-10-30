@@ -32,6 +32,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
+## Post-processing libraries
+
+- `postprocessing` 6.39.5 by Raoul van Rüschen (pmndrs), zlib licence: https://github.com/pmndrs/postprocessing/blob/main/LICENSE.md
+- `n8ao` 2.0.1 by N8python: its package.json says ISC and its LICENSE file is CC0 1.0 (public domain dedication): https://github.com/N8python/n8ao/blob/master/LICENSE
+
+Both are bundled, unmodified, into the lazily loaded 3D chunk.
+
 ## Fonts
 
 STIX Two Text, SIL Open Font License 1.1, served from this site by `next/font`.
