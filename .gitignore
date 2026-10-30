@@ -1,0 +1,13 @@
+.env
+.env*.local
+venv/
+__pycache__/
+.DS_Store
+node_modules/
+.next/
+out/
+.playwright-mcp/
+.taste-skill/
+.impeccable/config.local.json
+*.tsbuildinfo
+next-env.d.ts
