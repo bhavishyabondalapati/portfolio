@@ -11,3 +11,5 @@ out/
 .impeccable/config.local.json
 *.tsbuildinfo
 next-env.d.ts
+# Reference images belong to other people; keep them local only
+docs/references/

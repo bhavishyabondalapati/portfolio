@@ -1,5 +1,7 @@
 # Phase 1: art direction proposal
 
+> Superseded on 2026-10-30 by `phase-1b-cinematic-plan.md` (you changed direction to a full-screen cinematic site). Kept for the record.
+
 Status: **waiting for your approval.** No site code has been written.
 
 ## The idea in one sentence

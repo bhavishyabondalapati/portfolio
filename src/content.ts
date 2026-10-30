@@ -2,7 +2,7 @@
 // Components only read from it, so editing content never means touching layout code.
 //
 // Sources: the README of each repo in ~/projects, ~/projects/project-notes/*/01-overview.md,
-// and the resume (Burnes_Center/burnesresume.pdf). Every number below appears in one of those.
+// and the resume. Every number below appears in one of those.
 // Items marked "CONFIRM" disagree between sources or are missing; see docs/phase-0-content-notes.md.
 
 export type Link = { label: string; href: string };
@@ -66,7 +66,6 @@ export const education = [
     place: "Boston, MA",
     degree: "Master of Science in Computer Science",
     gpa: "3.9",
-    // CONFIRM: the brief says May 2027, the resume says Dec. 2027 (expected).
     dates: "Expected May 2027",
   },
   {
@@ -221,9 +220,8 @@ export const secondary: SecondaryProject[] = [
     name: "Kambaz LMS",
     oneLine:
       "A Canvas-style learning management system: courses, modules, enrollments and timed quizzes that grade themselves.",
-    // CONFIRM: the resume says "independently", JWT auth, a 12+ workflow Selenium suite and 7+ collections.
-    // The repos say team project, session cookies (express-session), Vitest and node:test. Using the repo version.
-    highlight: "Team final project for CS 5610 Web Development at Northeastern, Fall 2025. Live on Vercel.",
+    // Repo version confirmed: team of 3. CONFIRM which live deployment is final (eight-theta or navy-sigma).
+    highlight: "Team final project (3 people) for CS 5610 Web Development at Northeastern, Fall 2025. Live on Vercel.",
     stack: ["Next.js 15", "React 19", "Redux Toolkit", "Express 5", "MongoDB", "Mongoose"],
     links: [
       { label: "Live site", href: "https://kambaz-next-js-eight-theta.vercel.app" },
@@ -249,9 +247,8 @@ export const secondary: SecondaryProject[] = [
     highlight:
       "94% JUnit branch coverage, validated with Pitest mutation testing across recurrence, conflict detection and time zones.",
     stack: ["Java", "Swing", "JUnit", "Pitest", "Gradle"],
-    // CONFIRM: no repo found in ~/projects or on GitHub. Is there a public link?
     links: [],
-    note: "Course project; code not public.",
+    note: "Course team project. Code available on request.",
   },
 ];
 
