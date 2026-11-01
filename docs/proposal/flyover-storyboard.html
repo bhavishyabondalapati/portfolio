@@ -1,0 +1,117 @@
+<!doctype html>
+<!-- Storyboard for Part 3, the 3D flyover (proposal only, not the site).
+     The route maps are computed from the real coordinates in src/content.ts. -->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flyover storyboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --night: #0b1526; --plate: #13213a; --ink: #ece6d6; --ink-2: #a3afc2;
+    --rule: rgb(236 230 214 / 0.18); --glow: #ffb38a; --orange: #ff6a2b; --orange-text: #ff8b57;
+    --display: "Archivo", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--night); color: var(--ink); font: 400 1rem/1.55 var(--display); padding: 3rem clamp(1rem, 4vw, 3.5rem) 4rem; }
+  .mono { font: 500 0.72rem/1.6 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+  .mono b { color: var(--orange-text); font-weight: 600; }
+  h1 { font-weight: 800; font-variation-settings: "wdth" 125; font-size: clamp(2rem, 4.4vw, 3.4rem); text-transform: uppercase; line-height: 1; margin: 0.4rem 0 0.8rem; }
+  h2 { font-weight: 800; font-variation-settings: "wdth" 125; font-size: 1.5rem; text-transform: uppercase; margin: 3rem 0 1rem; }
+  .lede { max-width: 50rem; color: var(--ink-2); }
+  .maps { display: grid; grid-template-columns: 1fr 1.6fr; gap: 1.5rem; margin-top: 2rem; }
+  figure { border: 1.5px solid var(--ink); background: var(--plate); }
+  figcaption { display: flex; justify-content: space-between; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--rule); }
+  svg { display: block; width: 100%; height: auto; }
+  .frames { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; }
+  .frame { border: 1.5px solid var(--ink); background: var(--plate); display: flex; flex-direction: column; }
+  .frame .top { display: flex; justify-content: space-between; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--rule); }
+  .frame .body { padding: 0.9rem; display: grid; gap: 0.45rem; font-size: 0.95rem; }
+  .frame h3 { font-weight: 700; font-variation-settings: "wdth" 112; font-size: 1.15rem; }
+  .frame dl { display: grid; grid-template-columns: 5.5rem 1fr; gap: 0.25rem 0.6rem; font-size: 0.9rem; }
+  .frame dt { font: 500 0.68rem/1.9 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-2); }
+  .slice { outline: 2px solid var(--orange); outline-offset: 4px; }
+  .note { margin-top: 0.4rem; color: var(--ink-2); font-size: 0.9rem; }
+  @media (max-width: 900px) { .maps, .frames { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<p class="mono"><b>Part 3</b> · Storyboard · proposal</p>
+<h1>The survey, flown</h1>
+<p class="lede">A dusk flyover of glowing contour terrain along the real route, in the order it happened: Chennai, Hyderabad, Ongole, then 12,937 km to Boston. Scroll moves the camera along one curve; at each stop a scan sweep reveals the place like a change-detection mask, then that section's panel appears pinned to the marker. The orange frame marks the first slice (Chennai).</p>
+
+<div class="maps">
+  <figure><figcaption class="mono"><span>India leg</span><span>801 km, 3 stops</span></figcaption><svg id="india" viewBox="0 0 400 420"></svg></figure>
+  <figure><figcaption class="mono"><span>Transit · great circle</span><span>Ongole to Boston 12,937 km</span></figcaption><svg id="world" viewBox="0 0 720 360"></svg></figure>
+</div>
+
+<h2>Frames</h2>
+<div class="frames" id="frames"></div>
+
+<script>
+  const stops = [
+    { id: "Chennai", lat: 12.8231, lon: 80.0442 },
+    { id: "Hyderabad", lat: 17.385, lon: 78.4867 },
+    { id: "Ongole", lat: 15.5057, lon: 80.0499 },
+    { id: "Boston", lat: 42.3398, lon: -71.0892 },
+  ];
+  const NS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent.appendChild(e); return e; };
+
+  // India leg: equirectangular box 76.5..82 E, 11.5..18.5 N
+  const india = document.getElementById("india");
+  const ix = (lon) => 20 + ((lon - 76.5) / 5.5) * 360, iy = (lat) => 20 + ((18.5 - lat) / 7) * 380;
+  for (let lon = 77; lon <= 82; lon++) { el("line", { x1: ix(lon), y1: 20, x2: ix(lon), y2: 400, stroke: "rgb(236 230 214 / .12)" }, india); el("text", { x: ix(lon) + 3, y: 412, fill: "#a3afc2", "font-size": 9, "font-family": "IBM Plex Mono" }, india).textContent = lon + "°E"; }
+  for (let lat = 12; lat <= 18; lat++) { el("line", { x1: 20, y1: iy(lat), x2: 380, y2: iy(lat), stroke: "rgb(236 230 214 / .12)" }, india); el("text", { x: 23, y: iy(lat) - 3, fill: "#a3afc2", "font-size": 9, "font-family": "IBM Plex Mono" }, india).textContent = lat + "°N"; }
+  const leg = stops.slice(0, 3);
+  el("polyline", { points: leg.map((s) => `${ix(s.lon)},${iy(s.lat)}`).join(" "), fill: "none", stroke: "#ffb38a", "stroke-width": 1.5, "stroke-dasharray": "5 4" }, india);
+  leg.forEach((s, i) => {
+    el("circle", { cx: ix(s.lon), cy: iy(s.lat), r: 14, fill: "none", stroke: "#ff6a2b", "stroke-opacity": 0.5 }, india);
+    el("circle", { cx: ix(s.lon), cy: iy(s.lat), r: 4.5, fill: "#ff6a2b", stroke: "#ece6d6", "stroke-width": 1.5 }, india);
+    el("text", { x: ix(s.lon) + 20, y: iy(s.lat) + 4, fill: "#ece6d6", "font-size": 13, "font-family": "Archivo", "font-weight": 700 }, india).textContent = `${i + 1} ${s.id}`;
+  });
+
+  // World: equirectangular, great circle by spherical interpolation
+  const world = document.getElementById("world");
+  const wx = (lon) => ((lon + 180) / 360) * 720, wy = (lat) => ((90 - lat) / 180) * 360;
+  for (let lon = -180; lon <= 180; lon += 30) el("line", { x1: wx(lon), y1: 0, x2: wx(lon), y2: 360, stroke: "rgb(236 230 214 / .1)" }, world);
+  for (let lat = -60; lat <= 60; lat += 30) el("line", { x1: 0, y1: wy(lat), x2: 720, y2: wy(lat), stroke: lat === 0 ? "rgb(236 230 214 / .22)" : "rgb(236 230 214 / .1)" }, world);
+  const rad = (d) => (d * Math.PI) / 180, deg = (r) => (r * 180) / Math.PI;
+  const vec = (s) => [Math.cos(rad(s.lat)) * Math.cos(rad(s.lon)), Math.cos(rad(s.lat)) * Math.sin(rad(s.lon)), Math.sin(rad(s.lat))];
+  const a = vec(stops[2]), b = vec(stops[3]), om = Math.acos(a[0] * b[0] + a[1] * b[1] + a[2] * b[2]);
+  let d = "", prev = null;
+  for (let i = 0; i <= 120; i++) {
+    const t = i / 120, k1 = Math.sin((1 - t) * om) / Math.sin(om), k2 = Math.sin(t * om) / Math.sin(om);
+    const v = a.map((x, j) => x * k1 + b[j] * k2), lat = deg(Math.asin(v[2])), lon = deg(Math.atan2(v[1], v[0]));
+    const x = wx(lon), y = wy(lat);
+    d += (prev !== null && Math.abs(x - prev) > 300 ? "M" : i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1); prev = x;
+  }
+  el("path", { d, fill: "none", stroke: "#ffb38a", "stroke-width": 1.6, "stroke-dasharray": "6 4" }, world);
+  stops.forEach((s) => { el("circle", { cx: wx(s.lon), cy: wy(s.lat), r: 3.5, fill: "#ff6a2b", stroke: "#ece6d6" }, world); });
+  el("text", { x: wx(80) - 60, y: wy(15) + 22, fill: "#ece6d6", "font-size": 12, "font-family": "Archivo", "font-weight": 700 }, world).textContent = "India leg";
+  el("text", { x: wx(-71) + 10, y: wy(42) + 18, fill: "#ece6d6", "font-size": 12, "font-family": "Archivo", "font-weight": 700 }, world).textContent = "4 Boston";
+
+  // Frames
+  const frames = [
+    ["F1", "0.00", "Opening", "High over the Bay of Bengal at dusk, looking west at the Coromandel coast. Contours glow; the sea floor contours are dimmer. Title and route rail fade in.", "about 40 km up · heading W", "Route rail, Back button", true],
+    ["F2", "0.00–0.08", "Descent to Chennai", "Camera glides down and in toward Kattankulathur; haze thins, the marker pin rises from the terrain.", "40 → 6 km", "", true],
+    ["F3", "0.08–0.12", "Scan sweep · Chennai", "A ring sweeps out from the marker. Inside it the terrain shows a grid of mask cells filling orange by confidence, then settles to a crisp outline.", "hold, slow orbit", "Sweep 1.2 s", true],
+    ["F4", "0.12–0.16", "Panel · SRM", "Education panel pinned beside the marker: B.Tech CSE (AI and ML), GPA 3.64, Jan. 2025, plus the SRM project once you send it.", "hold", "Education, SRM project slot", true],
+    ["F5", "0.16–0.30", "Hyderabad · Mouri Tech", "Climb north over the Deccan plateau (534 km, compressed), sweep, then the Mouri Tech panel.", "climb, cruise, descend", "Experience 2"],
+    ["F6", "0.30–0.44", "Ongole · JC Biotech", "Southeast to the coast (267 km). The sweep here shows field plots, the work that became Aerial Change Intelligence.", "descend over fields", "Experience 1"],
+    ["F7", "0.44–0.56", "Transit · 12,937 km", "Climb until the terrain becomes a contour globe. A great-circle line draws from Ongole to Boston with a distance counter; night falls along the way.", "orbit altitude", "Distance readout"],
+    ["F8", "0.56–0.86", "Boston · Northeastern and plates", "Descend over Boston Harbor. Northeastern panel, then four project waypoints along the shore, one plate each, key result first.", "low, slow", "Education, Plates 2.1–2.4"],
+    ["F9", "0.86–1.00", "Night · coursework and contact", "City contours lit like streetlamps. Coursework and the gazetteer as one panel, then Contact, with Back to the plain site beside it.", "rise and hold", "Coursework, Earlier work, Contact"],
+  ];
+  const wrap = document.getElementById("frames");
+  for (const [n, j, title, text, cam, shows, slice] of frames) {
+    const f = document.createElement("article"); f.className = "frame" + (slice ? " slice" : "");
+    f.innerHTML = `<div class="top mono"><span><b>${n}</b> · scroll ${j}</span><span>${slice ? "slice 1" : ""}</span></div><div class="body"><h3>${title}</h3><p>${text}</p><dl><dt>Camera</dt><dd>${cam}</dd>${shows ? `<dt>Shows</dt><dd>${shows}</dd>` : ""}</dl></div>`;
+    wrap.appendChild(f);
+  }
+</script>
+</body>
+</html>
