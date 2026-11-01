@@ -73,6 +73,8 @@ export const person = {
   intro:
     "MS Computer Science student at Northeastern. I build machine learning systems that check their own work, and the backends that serve them.",
   lookingFor: "Looking for ML systems, backend and full-stack roles.",
+  // The line under the role on the first screen; the legend beside it carries the facts.
+  tagline: "I build machine learning systems that check their own work, and the backends that serve them.",
   contactLine: "Email is the fastest way to reach me.",
   location: "Boston, MA",
   // Northeastern's Boston campus: the "station" printed on the first screen.
@@ -142,7 +144,7 @@ export const featured: FeaturedProject[] = [
     slug: "aerial-change-intelligence",
     name: "Aerial Change Intelligence",
     field: "Computer vision · GIS",
-    figure: { value: "F1 0.898", label: "IoU 0.815 and calibration error 0.007 on 128 unseen test pairs" },
+    figure: { value: "F1 0.898", label: "change-detection accuracy on 128 unseen test pairs (IoU 0.815, calibration error 0.007)" },
     oneLine:
       "Before and after imagery in; changed areas, their size in hectares and a fact-checked report out.",
     problem:
@@ -170,7 +172,7 @@ export const featured: FeaturedProject[] = [
     slug: "llm-gateway",
     name: "LLM Gateway",
     field: "Backend · LLM infrastructure",
-    figure: { value: "3,085 req/s", label: "through the gateway at 19.8 ms p50" },
+    figure: { value: "3,085 req/s", label: "through the gateway with features off, at 19.8 ms median latency (p50)" },
     oneLine:
       "An OpenAI-compatible gateway that hides personal data from LLM providers and puts it back in the answer.",
     problem:
@@ -402,7 +404,7 @@ export const survey = {
     { key: "Degree", value: "MS Computer Science, Northeastern" },
     { key: "GPA", value: "3.9" },
     { key: "Complete", value: "May 2027" },
-    { key: "Seeking", value: "ML systems · Backend · Full-stack" },
+    { key: "Seeking", value: "ML systems · Backend · Full\u2011stack" },
     { key: "Status", value: "Open to roles" },
   ],
   revised: "Oct 2026",

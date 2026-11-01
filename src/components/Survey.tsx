@@ -2,7 +2,7 @@
 // The parts of the plain site that need the browser: the theme switch, the optional flyover
 // invitation, and loading fun mode only when the visitor asks for it (or chose it last time).
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { survey } from "@/content";
 import { MODE_KEY, THEME_KEY } from "@/lib/surveyMode";
 
@@ -21,7 +21,11 @@ const OPEN_EVENT = "survey:open";
 export function FlyButton({ className = "btn btn-secondary" }: { className?: string }) {
   return (
     <button type="button" className={`${className} fly`} onClick={() => window.dispatchEvent(new Event(OPEN_EVENT))}>
-      {survey.invite.button} <span className="tag" aria-label="(3D experience)">{survey.invite.tag}</span>
+      {survey.invite.button}{" "}
+      <span className="tag">
+        {survey.invite.tag}
+        <span className="sr-only"> experience</span>
+      </span>
     </button>
   );
 }
@@ -29,6 +33,12 @@ export function FlyButton({ className = "btn btn-secondary" }: { className?: str
 /** Opens fun mode on request, closes it with the back button, and remembers the choice. */
 export function SurveyController() {
   const [open, setOpen] = useState(false);
+  const opener = useRef<HTMLElement | null>(null);
+
+  // While fun mode is open the plain page behind it is inert, so Tab and screen readers stay in the dialog.
+  useEffect(() => {
+    for (const el of document.querySelectorAll("body > :not(.fun)")) (el as HTMLElement).inert = open;
+  }, [open]);
 
   useEffect(() => {
     const d = document.documentElement;
@@ -37,6 +47,7 @@ export function SurveyController() {
     if (d.dataset.fly === "yes" && d.dataset.mode === "fun") setOpen(true);
     const onOpen = () => {
       if (d.dataset.fly !== "yes") return;
+      opener.current = document.activeElement as HTMLElement | null;
       store(MODE_KEY, "fun");
       d.dataset.mode = "fun";
       setOpen(true);
@@ -52,6 +63,8 @@ export function SurveyController() {
         store(MODE_KEY, "plain");
         document.documentElement.dataset.mode = "plain";
         setOpen(false);
+        // give focus back to the button that opened it (or the top of the page on a direct return visit)
+        requestAnimationFrame(() => (opener.current ?? document.getElementById("hero-title"))?.focus());
       }}
     />
   );

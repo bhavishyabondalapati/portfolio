@@ -21,18 +21,18 @@ import { FlyButton } from "./Survey";
 
 const ext = { rel: "noopener noreferrer", target: "_blank" } as const;
 
+/** A section heading set like a map sheet: the plain title, with the sheet number in the margin. */
 function SheetHead({ n, label, title, note, id }: { n: string; label: string; title: string; note: string; id: string }) {
   return (
     <header className="sheet-head">
-      <div>
-        <p className="mono">
-          <b>Sheet {n}</b> · {label}
-        </p>
-        <h2 id={id} className="sheet-title">
-          {title}
-        </h2>
-      </div>
-      <p className="mono sheet-note">{note}</p>
+      <h2 id={id} className="sheet-title">
+        {title}
+      </h2>
+      <p className="mono sheet-note">
+        <b>Sheet {n} / 06</b>
+        <span>{label}</span>
+        <span>{note}</span>
+      </p>
     </header>
   );
 }
@@ -45,10 +45,13 @@ function Plate({ p, n }: { p: FeaturedProject; n: number }) {
         <span>Plate 2.{n}</span>
         <span>{p.field}</span>
       </div>
-      <p className="plate-figure">
-        <strong>{p.figure.value}</strong>
-        <span>{p.figure.label}</span>
-      </p>
+      <div className="plate-figure">
+        <h3 id={titleId}>{p.name}</h3>
+        <p>
+          <strong>{p.figure.value}</strong>
+          <span>{p.figure.label}</span>
+        </p>
+      </div>
       {p.media.length > 0 && (
         <div className={`plate-media count-${p.media.length}`}>
           {p.media.map((m) => (
@@ -68,8 +71,7 @@ function Plate({ p, n }: { p: FeaturedProject; n: number }) {
       )}
       {p.chart && <PlateChart chart={p.chart} />}
       <div className="plate-body">
-        <h3 id={titleId}>{p.name}</h3>
-        <p>{p.oneLine}</p>
+        <p className="plate-line">{p.oneLine}</p>
         {p.result.length > 1 && (
           <ul>
             {p.result.slice(1).map((r) => (
@@ -78,7 +80,9 @@ function Plate({ p, n }: { p: FeaturedProject; n: number }) {
           </ul>
         )}
         <details>
-          <summary>Problem and what I built</summary>
+          <summary>
+            Problem and what I built<span className="sr-only">: {p.name}</span>
+          </summary>
           <p>{p.problem}</p>
           <ul>
             {p.built.map((b) => (
@@ -88,7 +92,7 @@ function Plate({ p, n }: { p: FeaturedProject; n: number }) {
         </details>
       </div>
       <div className="plate-foot">
-        <span className="mono">{p.stack.join(" · ")}</span>
+        <span className="mono stack">{p.stack.join(" · ")}</span>
         <span className="plate-links">
           {p.links.map((l) => (
             <a key={l.href} href={l.href} {...ext}>
@@ -115,7 +119,7 @@ function SmallPlate({ s, n }: { s: SecondaryProject; n: string }) {
         {s.note && <p className="note">{s.note}</p>}
       </div>
       <div className="plate-foot">
-        <span className="mono">{s.stack.join(" · ")}</span>
+        <span className="mono stack">{s.stack.join(" · ")}</span>
         {s.links.length > 0 && (
           <span className="plate-links">
             {s.links.map((l) => (
@@ -131,14 +135,12 @@ function SmallPlate({ s, n }: { s: SecondaryProject; n: string }) {
 }
 
 export function Sections() {
-  const boston = formatCoords(person.station);
-  const srm = education.find((e) => e.school.startsWith("SRM"))!;
   const earlier = [...(srmProject ? [srmProject] : []), ...earlierWork];
   return (
     <>
       <section id="experience" className="sheet" aria-labelledby="experience-title">
         <div className="wrap">
-          <SheetHead n="01" label="Experience" title="Experience" id="experience-title" note={`${experience.length} stations · India`} />
+          <SheetHead n="01" label="Experience" title="Experience" id="experience-title" note={`${experience.length} internships · India`} />
           {experience.map((job) => (
             <article key={job.company} className="job" aria-labelledby={`job-${job.company}`}>
               <div className="job-meta mono">
@@ -155,7 +157,7 @@ export function Sections() {
                     <li key={pt}>{pt}</li>
                   ))}
                 </ul>
-                <p className="chips mono">{job.stack.join(" · ")}</p>
+                <p className="mono stack chips">{job.stack.join(" · ")}</p>
               </div>
             </article>
           ))}
@@ -164,7 +166,7 @@ export function Sections() {
 
       <section id="projects" className="sheet" aria-labelledby="projects-title">
         <div className="wrap">
-          <SheetHead n="02" label="Projects" title="Survey plates" id="projects-title" note={`${featured.length} plates · ${boston}`} />
+          <SheetHead n="02" label="Survey plates" title="Projects" id="projects-title" note={`${featured.length} plates · measured results first`} />
           <div className="plates">
             {featured.map((p, i) => (
               <Plate key={p.slug} p={p} n={i + 1} />
@@ -188,7 +190,7 @@ export function Sections() {
 
       <section id="coursework" className="sheet" aria-labelledby="coursework-title">
         <div className="wrap">
-          <SheetHead n="03" label="Coursework" title="Coursework" id="coursework-title" note={`Northeastern · ${boston}`} />
+          <SheetHead n="03" label="Course projects" title="Coursework" id="coursework-title" note="Northeastern University" />
           <div className="small-plates">
             {coursework.map((s, i) => (
               <SmallPlate key={s.slug} s={s} n={`Plate 3.${i + 1}`} />
@@ -201,10 +203,10 @@ export function Sections() {
         <div className="wrap">
           <SheetHead
             n="04"
-            label="Earlier work"
-            title="Gazetteer"
+            label="Gazetteer"
+            title="Earlier work"
             id="earlier-title"
-            note={`${earlier.length + otherWork.length} entries · ${formatCoords(srm.coords)}`}
+            note={`${earlier.length + otherWork.length} entries`}
           />
           <div className="small-plates">
             {earlier.map((s, i) => (
@@ -234,7 +236,7 @@ export function Sections() {
                       </a>
                     </th>
                     <td>{o.oneLine}</td>
-                    <td className="mono">{o.stack.join(" · ")}</td>
+                    <td className="mono stack">{o.stack.join(" · ")}</td>
                   </tr>
                 ))}
               </tbody>
@@ -245,7 +247,7 @@ export function Sections() {
 
       <section id="about" className="sheet" aria-labelledby="about-title">
         <div className="wrap">
-          <SheetHead n="05" label="About" title="About" id="about-title" note={`${person.location} · ${boston}`} />
+          <SheetHead n="05" label="Surveyor" title="About" id="about-title" note={person.location} />
           <div className="about">
             <div className="about-letter">
               <p className="about-lead">{person.intro}</p>
@@ -282,7 +284,7 @@ export function Sections() {
 
       <section id="contact" className="sheet sheet-contact" aria-labelledby="contact-title">
         <div className="wrap">
-          <SheetHead n="06" label="Contact" title="Contact" id="contact-title" note={boston} />
+          <SheetHead n="06" label="Correspondence" title="Contact" id="contact-title" note="Email first" />
           <div className="contact">
             <p className="contact-line">{person.contactLine}</p>
             <a className="contact-email" href={`mailto:${contact.email}`}>

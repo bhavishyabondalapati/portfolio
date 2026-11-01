@@ -32,19 +32,20 @@ export default function Home() {
           </nav>
           <ThemeToggle />
         </div>
+        <nav className="sheet-index mono" aria-label="Sections (compact)">
+          {nav.map(([id, label], i) => (
+            <a key={id} href={`#${id}`}>
+              <b>0{i + 1}</b> {label}
+            </a>
+          ))}
+        </nav>
       </header>
 
       <main>
         <section id="top" className="hero" aria-labelledby="hero-title">
           <div className="wrap hero-grid">
             <div className="hero-name">
-              <p className="mono sheet-label">
-                <span>
-                  <b>Sheet 00</b> · Survey of work
-                </span>
-                <span>{formatCoords(person.station)}</span>
-              </p>
-              <h1 id="hero-title">
+              <h1 id="hero-title" tabIndex={-1}>
                 {person.name.split(" ").map((w) => (
                   <span key={w}>{w}</span>
                 ))}
@@ -52,7 +53,7 @@ export default function Home() {
             </div>
             <div className="hero-text">
               <p className="hero-role">{person.role}</p>
-              <p className="hero-lede">{person.heroLine}</p>
+              <p className="hero-lede">{person.tagline}</p>
               <div className="hero-actions">
                 <a className="btn btn-primary" href={person.heroAction.href}>
                   {person.heroAction.label}
@@ -86,6 +87,13 @@ export default function Home() {
                 Sheets 01 to 06 · {featured.length} plates
               </p>
             </aside>
+            {/* the sheet's margin line, as printed along the edge of a map */}
+            <p className="hero-margin mono">
+              <span>
+                <b>Sheet 00 / 06</b> · Survey of work
+              </span>
+              <span>Station {formatCoords(person.station)}</span>
+            </p>
           </div>
         </section>
         <Sections />

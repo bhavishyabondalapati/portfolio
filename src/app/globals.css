@@ -67,6 +67,11 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+p,
+li {
+  text-wrap: pretty;
+}
+
 img {
   display: block;
   max-width: 100%;
@@ -83,8 +88,21 @@ a:hover {
 }
 
 :focus-visible {
-  outline: 2px solid var(--orange);
+  outline: 2px solid var(--ink);
   outline-offset: 3px;
+}
+
+h1:focus {
+  outline: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 button {
@@ -117,6 +135,12 @@ ol {
   text-transform: uppercase;
   color: var(--ink-2);
   font-variation-settings: normal;
+}
+
+.mono.stack {
+  text-transform: none;
+  letter-spacing: 0.01em;
+  font-size: 0.8rem;
 }
 
 .mono b {
@@ -156,6 +180,9 @@ ol {
 }
 
 .wordmark {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
   font-weight: 800;
   font-variation-settings: "wdth" 125;
   font-size: 0.95rem;
@@ -165,25 +192,45 @@ ol {
   white-space: nowrap;
 }
 
-.bar nav {
+.bar-inner nav {
   display: flex;
   gap: 1.5rem;
   margin-left: auto;
   font-size: 0.95rem;
 }
 
-.bar nav a {
+.bar-inner nav a {
   text-decoration: none;
-  padding-block: 0.5rem;
+  padding-block: 0.7rem;
 }
 
-.bar nav a:hover {
+/* the compact sheet index replaces the nav on narrower screens */
+.sheet-index {
+  display: none;
+  gap: 0.25rem 1.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 0 var(--gutter);
+  border-top: 1px solid var(--rule);
+}
+
+.sheet-index a {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  gap: 0.4rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.bar-inner nav a:hover {
   text-decoration: underline;
 }
 
 .theme-toggle {
   min-width: 3.6rem;
-  min-height: 2.25rem;
+  min-height: 2.75rem;
   padding: 0 0.7rem;
   background: none;
   border: 1px solid var(--rule);
@@ -234,7 +281,7 @@ ol {
 }
 
 .btn .tag {
-  font: 500 0.68rem/1 var(--mono);
+  font: 500 0.75rem/1 var(--mono);
   letter-spacing: 0.08em;
   border: 1px solid currentColor;
   padding: 0.2rem 0.35rem;
@@ -280,11 +327,14 @@ ol {
   grid-column: 1 / -1;
 }
 
-.sheet-label {
+.hero-margin {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
+  justify-content: space-between;
   gap: 0.25rem 1.5rem;
-  margin-bottom: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
 }
 
 h1 {
@@ -322,8 +372,16 @@ h1 span {
 
 .hero-links {
   display: flex;
-  gap: 1.5rem;
-  margin-top: 1.4rem;
+  gap: 0 1.5rem;
+  margin-top: 0.75rem;
+}
+
+.hero-links a,
+.contact-links a,
+.plate-links a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
 }
 
 .legend {
@@ -401,13 +459,12 @@ h1 span {
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: end;
-  gap: 0.5rem 2rem;
+  gap: 1rem 2rem;
   padding-block: clamp(3rem, 8vh, 5.5rem) 1.25rem;
   border-bottom: 1.5px solid var(--rule-strong);
 }
 
 .sheet-title {
-  margin-top: 0.5rem;
   font-weight: 800;
   font-variation-settings: "wdth" 125;
   font-size: clamp(2rem, 4.8vw, 4rem);
@@ -416,6 +473,9 @@ h1 span {
 }
 
 .sheet-note {
+  display: grid;
+  justify-items: end;
+  gap: 0.1rem;
   text-align: right;
 }
 
@@ -454,25 +514,25 @@ h1 span {
 
 .job-summary {
   margin-top: 0.9rem;
-  max-width: 52rem;
+  max-width: 44rem;
   font-size: 1.15rem;
 }
 
 .job ul {
   display: grid;
   gap: 0.55rem;
-  max-width: 52rem;
+  max-width: 38rem;
   margin-top: 1rem;
 }
 
 .job li::marker,
 .plate li::marker {
-  color: var(--orange-text);
+  color: var(--ink-2);
 }
 
 .chips {
   margin-top: 1.1rem;
-  max-width: 52rem;
+  max-width: 44rem;
 }
 
 /* plates */
@@ -518,6 +578,7 @@ h1 span {
 }
 
 .plate-top {
+  white-space: nowrap;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
@@ -528,6 +589,14 @@ h1 span {
 .plate-figure {
   padding: 1.4rem 1.25rem 1.15rem;
   border-bottom: 1px solid var(--rule);
+}
+
+.plate-figure h3 {
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+  font-variation-settings: "wdth" 112;
+  font-size: 1.4rem;
+  line-height: 1.15;
 }
 
 .plate-figure strong {
@@ -601,10 +670,13 @@ h1 span {
   flex: 1;
 }
 
-.plate-body h3 {
+.plate-line {
+  font-size: 1.05rem;
+}
+
+.small-plate .plate-body h3 {
   font-weight: 700;
   font-variation-settings: "wdth" 112;
-  font-size: 1.45rem;
   line-height: 1.15;
 }
 
@@ -623,6 +695,9 @@ h1 span {
   cursor: pointer;
   font-weight: 600;
   width: fit-content;
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
 }
 
 .plate summary:hover {
@@ -806,8 +881,7 @@ h1 span {
 }
 
 .small-highlight {
-  padding-left: 0.9rem;
-  border-left: 2px solid var(--orange);
+  font-weight: 500;
 }
 
 .note {
@@ -848,6 +922,14 @@ h1 span {
 .gazetteer tbody th {
   font-weight: 600;
   white-space: nowrap;
+}
+
+.gazetteer td.mono {
+  white-space: nowrap;
+}
+
+.gazetteer td.stack {
+  white-space: normal;
 }
 
 .gazetteer tbody td:nth-child(3) {
@@ -1008,8 +1090,16 @@ h1 span {
 /* ---------- smaller screens ---------- */
 
 @media (max-width: 1100px) {
-  .bar nav {
+  .bar-inner nav {
     display: none;
+  }
+
+  .bar .sheet-index {
+    display: flex;
+  }
+
+  html {
+    scroll-padding-top: calc(var(--bar-h) + 3.75rem);
   }
 
   .theme-toggle {
@@ -1032,11 +1122,59 @@ h1 span {
   }
 
   .sheet-note {
+    justify-items: start;
     text-align: left;
   }
 
   .invite svg {
     display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  /* the gazetteer becomes a list: number and name, then what it does, then the stack */
+  .gazetteer table,
+  .gazetteer tbody,
+  .gazetteer tr,
+  .gazetteer th,
+  .gazetteer td {
+    display: block;
+  }
+
+  .gazetteer thead {
+    display: none;
+  }
+
+  .gazetteer caption {
+    display: block;
+    padding: 0.75rem 1rem 0;
+  }
+
+  .gazetteer tbody tr {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.2rem 0.75rem;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .gazetteer tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .gazetteer tbody tr > * {
+    padding: 0;
+    border: 0;
+  }
+
+  .gazetteer tbody td:nth-child(3),
+  .gazetteer tbody td:nth-child(4) {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  .gazetteer tbody th {
+    white-space: normal;
   }
 }
 
