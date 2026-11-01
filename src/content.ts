@@ -7,32 +7,48 @@
 
 export type Link = { label: string; href: string };
 
+/** A point on the map, in decimal degrees (WGS 84). West and south are negative. */
+export type Coords = { lat: number; lon: number };
+
 export type Experience = {
   company: string;
   role: string;
   place: string;
+  coords: Coords;
   dates: string;
   summary: string;
   points: string[];
   stack: string[];
 };
 
+/** A small figure drawn in code from a project's own numbers, for plates without a picture. */
+export type PlateChart =
+  | { kind: "bars"; unit: string; caption: string; rows: { label: string; value: number }[] }
+  | { kind: "steps"; caption: string; steps: string[] };
+
 export type FeaturedProject = {
   slug: string;
   name: string;
+  /** Short field label printed at the top of the plate. */
+  field: string;
+  /** The key result, printed first and large. */
+  figure: { value: string; label: string };
   oneLine: string;
   problem: string;
   built: string[];
   result: string[];
   stack: string[];
   links: Link[];
-  // The project's own picture or clip, copied from its repo during the build.
-  media: { src: string; alt: string; kind: "image" | "video"; poster?: string }[];
+  // The project's own pictures, copied from its repo. Several images show as a strip of tiles.
+  media: { src: string; alt: string; caption?: string }[];
+  chart?: PlateChart;
 };
 
 export type SecondaryProject = {
   slug: string;
   name: string;
+  /** The course it was built for, when it was coursework. */
+  course?: string;
   oneLine: string;
   highlight: string;
   stack: string[];
@@ -59,6 +75,8 @@ export const person = {
   lookingFor: "Looking for ML systems, backend and full-stack roles.",
   contactLine: "Email is the fastest way to reach me.",
   location: "Boston, MA",
+  // Northeastern's Boston campus: the "station" printed on the first screen.
+  station: { lat: 42.3398, lon: -71.0892 } satisfies Coords,
   // The one sentence under the name on the first screen.
   heroLine: "MS\u00a0Computer Science at Northeastern, GPA\u00a03.9, graduating May\u00a02027. Open to ML systems, backend and full-stack roles.",
   heroAction: { label: "See the work", href: "#projects" },
@@ -68,6 +86,7 @@ export const education = [
   {
     school: "Northeastern University",
     place: "Boston, MA",
+    coords: { lat: 42.3398, lon: -71.0892 },
     degree: "Master of Science in Computer Science",
     gpa: "3.9",
     dates: "Expected May 2027",
@@ -75,6 +94,8 @@ export const education = [
   {
     school: "SRM Institute of Science and Technology",
     place: "Chennai, India",
+    // Kattankulathur campus
+    coords: { lat: 12.8231, lon: 80.0442 },
     degree: "Bachelor of Technology in Computer Science and Engineering (AI and ML)",
     gpa: "3.64",
     dates: "Jan. 2025",
@@ -85,7 +106,8 @@ export const experience: Experience[] = [
   {
     company: "JC Biotech Pvt. Ltd.",
     role: "Automation and AI Systems Intern",
-    place: "Andhra Pradesh, India",
+    place: "Ongole, Andhra Pradesh, India",
+    coords: { lat: 15.5057, lon: 80.0499 },
     dates: "Nov. 2024 to Jun. 2025",
     summary:
       "Agentic aerial impact intelligence: raw aerial imagery in, audit-ready field reports out.",
@@ -102,6 +124,7 @@ export const experience: Experience[] = [
     company: "Mouri Tech",
     role: "Data Analyst Intern",
     place: "Hyderabad, India",
+    coords: { lat: 17.385, lon: 78.4867 },
     dates: "Sept. 2024 to Oct. 2024",
     summary: "A GenAI document platform for healthcare paperwork.",
     points: [
@@ -118,6 +141,8 @@ export const featured: FeaturedProject[] = [
   {
     slug: "aerial-change-intelligence",
     name: "Aerial Change Intelligence",
+    field: "Computer vision · GIS",
+    figure: { value: "F1 0.898", label: "IoU 0.815 and calibration error 0.007 on 128 unseen test pairs" },
     oneLine:
       "Before and after imagery in; changed areas, their size in hectares and a fact-checked report out.",
     problem:
@@ -136,16 +161,16 @@ export const featured: FeaturedProject[] = [
     stack: ["PyTorch (MPS)", "torchvision", "GeoPandas", "rasterio", "Shapely", "pystac-client", "Gemini", "NumPy", "pytest"],
     links: [{ label: "Code on GitHub", href: `${GH}/aerial-change-intelligence` }],
     media: [
-      {
-        src: "/work/aerial-godavari-ndvi.webp",
-        alt: "Godavari delta from Sentinel-2: vegetation index before, after, and the flagged loss areas",
-        kind: "image",
-      },
+      { src: "/work/aerial-before.webp", alt: "Godavari delta vegetation index, 2021 to 2024 normal: mostly green fields with redder patches", caption: "Vegetation, normal" },
+      { src: "/work/aerial-after.webp", alt: "The same area in 2025: greener fields with scattered red patches", caption: "Vegetation, 2025" },
+      { src: "/work/aerial-flagged.webp", alt: "The same area with flagged vegetation loss shown in orange over a grey base", caption: "Flagged loss" },
     ],
   },
   {
     slug: "llm-gateway",
     name: "LLM Gateway",
+    field: "Backend · LLM infrastructure",
+    figure: { value: "3,085 req/s", label: "through the gateway at 19.8 ms p50" },
     oneLine:
       "An OpenAI-compatible gateway that hides personal data from LLM providers and puts it back in the answer.",
     problem:
@@ -165,10 +190,21 @@ export const featured: FeaturedProject[] = [
     stack: ["Python", "FastAPI", "httpx", "Presidio", "spaCy", "OpenTelemetry", "SQLite", "Docker Compose", "Jaeger", "pytest"],
     links: [{ label: "Code on GitHub", href: `${GH}/llm-gateway` }],
     media: [],
+    chart: {
+      kind: "bars",
+      unit: "ms, p50 under load",
+      caption: "Cache hit against cache miss",
+      rows: [
+        { label: "Cache hit", value: 1.6 },
+        { label: "Cache miss", value: 394 },
+      ],
+    },
   },
   {
     slug: "robot-arm-sim",
     name: "Robot Arm Simulation",
+    field: "Robotics · imitation learning",
+    figure: { value: "46 / 50", label: "unseen pick-and-place episodes, from cameras and joint angles only" },
     oneLine:
       "An SO-101 arm in MuJoCo that learns pick-and-place from camera images by copying a scripted expert.",
     problem:
@@ -187,17 +223,14 @@ export const featured: FeaturedProject[] = [
     stack: ["MuJoCo 3", "PyTorch (MPS)", "NumPy", "imageio", "matplotlib", "pytest"],
     links: [{ label: "Code on GitHub", href: `${GH}/robot-arm-sim` }],
     media: [
-      {
-        src: "/work/robot-arm-policy.mp4",
-        poster: "/work/robot-arm-scene.webp",
-        alt: "The simulated SO-101 arm picking up a cube and placing it on a target, driven by the learned policy",
-        kind: "video",
-      },
+      { src: "/work/robot-arm-scene.webp", alt: "The simulated SO-101 arm above a red cube on a checkered floor" },
     ],
   },
   {
     slug: "excel-copilot",
     name: "Excel Copilot",
+    field: "TypeScript · LLM tools",
+    figure: { value: "120 tests", label: "across 11 files; nothing is written without validation and a confirmed preview" },
     oneLine:
       "An Excel add-in that turns plain-English requests into edits you can preview, apply and undo.",
     problem:
@@ -215,18 +248,24 @@ export const featured: FeaturedProject[] = [
     stack: ["TypeScript", "React 19", "Office.js", "Zod", "Claude API", "Gemini API", "Vite", "Vitest"],
     links: [{ label: "Code on GitHub", href: `${GH}/excel-copilot` }],
     media: [],
+    chart: {
+      kind: "steps",
+      caption: "What happens between a request and a changed cell",
+      steps: ["Plain-English request", "Check the shape", "Check the meaning", "Preview the cell diff", "You confirm", "Apply, with undo"],
+    },
   },
 ];
 
-export const secondary: SecondaryProject[] = [
+export const coursework: SecondaryProject[] = [
   {
     slug: "kambaz",
     name: "Kambaz LMS",
+    course: "CS 5610 Web Development",
     oneLine:
       "A Canvas-style learning management system: courses, modules, assignments and enrollments, with editing tools for faculty.",
     // My individual CS 5610 build (kambaz-next-js + kambaz-node-server-app), not the team fork.
     highlight:
-      "Next.js and Redux frontend talking to my own Express and MongoDB API with cookie sessions. Built for CS 5610 Web Development at Northeastern, Fall 2025.",
+      "Next.js and Redux frontend talking to my own Express and MongoDB API with cookie sessions. Northeastern, Fall 2025.",
     stack: ["Next.js 15", "React 19", "TypeScript", "Redux Toolkit", "Express 5", "MongoDB", "Mongoose"],
     links: [
       { label: "Live site", href: "https://kambaz-next-js-navy-sigma.vercel.app" },
@@ -234,6 +273,27 @@ export const secondary: SecondaryProject[] = [
       { label: "API code", href: `${GH}/kambaz-node-server-app` },
     ],
   },
+  {
+    slug: "calendar",
+    name: "Calendar Management Application",
+    // Course number not found in the repos or resume, so only the name is shown.
+    course: "Programming Design Paradigms",
+    oneLine:
+      "A Java calendar with GUI, command-line and headless scripting modes driven by one shared controller.",
+    highlight:
+      "94% JUnit branch coverage, validated with Pitest mutation testing across recurrence, conflict detection and time zones.",
+    stack: ["Java", "Swing", "JUnit", "Pitest", "Gradle"],
+    links: [],
+    note: "Team project. Code available on request.",
+  },
+];
+
+// Earlier work: the SRM project goes first once its details arrive. Leave it null until then;
+// the page shows nothing for an empty slot.
+export const srmProject: SecondaryProject | null = null;
+
+/** Projects with a measured result, shown as small plates before the gazetteer list. */
+export const earlierWork: SecondaryProject[] = [
   {
     slug: "doc-intelligence-chatbot",
     name: "Document Intelligence Chatbot",
@@ -243,17 +303,6 @@ export const secondary: SecondaryProject[] = [
       "Hybrid BM25 and bge-small retrieval raised MRR@10 from 0.57 to 0.80 and Hit@1 from 0.42 to 0.71 on 60 hand-labelled questions over FDA drug labels.",
     stack: ["PyMuPDF", "Tesseract OCR", "sentence-transformers", "BM25", "FAISS", "Gemini", "pytest"],
     links: [{ label: "Code on GitHub", href: `${GH}/doc-intelligence-chatbot` }],
-  },
-  {
-    slug: "calendar",
-    name: "Calendar Management Application",
-    oneLine:
-      "A Java calendar with GUI, command-line and headless scripting modes driven by one shared controller.",
-    highlight:
-      "94% JUnit branch coverage, validated with Pitest mutation testing across recurrence, conflict detection and time zones.",
-    stack: ["Java", "Swing", "JUnit", "Pitest", "Gradle"],
-    links: [],
-    note: "Course team project. Code available on request.",
   },
 ];
 
@@ -338,31 +387,34 @@ export const contact = {
   // Phone number is deliberately not included.
 };
 
-// The guided tour: what the kitten says in each scene. Plain words, no emoji.
-export const tour = {
-  skipLabel: "Skip the tour",
-  resumeLabel: "Take the tour",
-  kittenLabel: "The house cat. Press to see it swing its sword.",
-  lines: {
-    hero: "Hi. I'm the house cat. Scroll and I'll show you around.",
-    swing: ["En garde.", "Code review, sword edition.", "I guard the repos."],
-    experience: "Two internships. Six AI agents. Zero naps.",
-    projects: "Each room is a project. Every number in here was measured.",
-    otherWork: "The ledger. Smaller builds, same habit: test everything.",
-    about: "Golden hour. Good time for the backstory.",
-    contact: "That's the tour. Bhavishya answers email faster than I answer to my name.",
+// Words for the survey framing and the optional 3D flyover.
+export const survey = {
+  invite: {
+    button: "Fly the survey",
+    tag: "3D",
+    title: "Want to see this as a map?",
+    text: "Fly the route from Chennai to Boston over 3D terrain, with each stop opening its section. Interactive 3D, about a minute; best on a recent laptop or desktop.",
   },
-  // what the kitten says at each project's bay in the corridor
-  projectLines: {
-    "aerial-change-intelligence": "It checks every number the AI writes. I check every box that arrives.",
-    "llm-gateway": "3,085 requests a second. I can manage about two.",
-    "robot-arm-sim": "46 of 50 pickups. I'm 0 for 50 against the laser dot.",
-    "excel-copilot": "It has an undo button. I've asked for one for naps.",
-  } as Record<string, string>,
-  experienceLines: ["Two internships. Six AI agents. Zero naps.", "Then a healthcare platform. 100K+ embeddings, searched in under 3 seconds."],
-  // Scene descriptions for screen readers and the fast version's still images.
-  sceneAlt: {
-    hero: "The front of a Chettinad house at golden hour, seen from the corner of the yard: a raised veranda with turned teak pillars, a carved teak door, and the name bhavishya standing in the front yard.",
-    heroDusk: "The same Chettinad house at dusk, with brass oil lamps lit along the veranda and warm light in the windows.",
-  },
+  backLabel: "Back to the plain site",
+  // The map legend on the first screen.
+  legend: [
+    { key: "Station", value: "Boston, MA" },
+    { key: "Degree", value: "MS Computer Science, Northeastern" },
+    { key: "GPA", value: "3.9" },
+    { key: "Complete", value: "May 2027" },
+    { key: "Seeking", value: "ML systems · Backend · Full-stack" },
+    { key: "Status", value: "Open to roles" },
+  ],
+  revised: "Oct 2026",
 };
+
+/**
+ * The flyover route, in the order it happened. Fun mode flies these in sequence;
+ * the plain site lists sections by importance instead.
+ */
+export const route = [
+  { id: "chennai", place: "Chennai", what: "SRM Institute of Science and Technology", when: "B.Tech, finished Jan. 2025", coords: { lat: 12.8231, lon: 80.0442 } },
+  { id: "hyderabad", place: "Hyderabad", what: "Mouri Tech", when: "Sept. to Oct. 2024", coords: { lat: 17.385, lon: 78.4867 } },
+  { id: "ongole", place: "Ongole", what: "JC Biotech", when: "Nov. 2024 to Jun. 2025", coords: { lat: 15.5057, lon: 80.0499 } },
+  { id: "boston", place: "Boston", what: "Northeastern University", when: "MS, graduating May 2027", coords: { lat: 42.3398, lon: -71.0892 } },
+] satisfies { id: string; place: string; what: string; when: string; coords: Coords }[];

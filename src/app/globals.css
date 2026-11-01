@@ -1,35 +1,39 @@
-/* Colour tokens from the house's materials. Contrast ratios are in docs/phase-1-art-direction.md. */
+/* The Survey: a portfolio set as a survey document.
+   Colours are tokens on :root; [data-theme="dark"] swaps them for the night chart.
+   Every text pairing passes WCAG AA; see docs/phase-5-survey-proposal.md for the ratios. */
+
 :root {
-  --ground: #f2f1ec; /* lime-white plaster */
-  --surface: #e6e4dc;
-  --ink: #1b2342; /* indigo */
-  --muted: #4f5672;
-  --accent: #d19a2a; /* turmeric ochre: the one action */
-  --accent-ink: #1b2342;
-  --oxide: #7c2d20; /* red oxide floor */
-  --teak: #4a2f1d;
-  --on-field: #f2f1ec;
-  --focus: #1b2342;
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --gutter: clamp(16px, 4vw, 48px);
-  --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
-  --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem);
-  --step-lead: clamp(1.2rem, 1.05rem + 0.6vw, 1.6rem);
-  --step-head: clamp(2rem, 1.3rem + 3vw, 3.75rem);
-  --step-hero: clamp(2.4rem, 1.6rem + 2.6vw, 3.75rem);
-  color-scheme: light dark;
+  --paper: #f4f1e8;
+  --plate: #eae5d7;
+  --ink: #0f1e36;
+  --ink-2: #45526a;
+  --rule: rgb(15 30 54 / 0.2);
+  --rule-strong: var(--ink);
+  --contour: rgb(15 30 54 / 0.15);
+  --grid: rgb(15 30 54 / 0.045);
+  --orange: #f25c1f;
+  --orange-text: #b33a0a;
+  --on-orange: #0f1e36;
+
+  --display: var(--font-archivo), system-ui, sans-serif;
+  --mono: var(--font-plex-mono), ui-monospace, monospace;
+  --gutter: clamp(1rem, 4vw, 3.5rem);
+  --bar-h: 3.75rem;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ground: #16130f;
-    --surface: #231e18;
-    --ink: #eceae2;
-    --muted: #b3ae9f;
-    --accent: #e3b04b;
-    --accent-ink: #16130f;
-    --focus: #e3b04b;
-  }
+:root[data-theme="dark"] {
+  --paper: #0b1526;
+  --plate: #13213a;
+  --ink: #ece6d6;
+  --ink-2: #a3afc2;
+  --rule: rgb(236 230 214 / 0.18);
+  --contour: rgb(236 230 214 / 0.13);
+  --grid: rgb(236 230 214 / 0.035);
+  --orange: #ff6a2b;
+  --orange-text: #ff8b57;
+  --on-orange: #0b1526;
+  color-scheme: dark;
 }
 
 *,
@@ -38,821 +42,1024 @@
   box-sizing: border-box;
 }
 
-/* smooth jumps on the fast page; in the tour a smooth jump would fast-forward the whole walk */
-html[data-mode="fast"] {
+* {
+  margin: 0;
+}
+
+html {
   scroll-behavior: smooth;
-}
-
-p,
-li {
-  text-wrap: pretty;
-}
-h1,
-h2,
-h3 {
-  text-wrap: balance;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+  scroll-padding-top: calc(var(--bar-h) + 1rem);
+  -webkit-text-size-adjust: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html[data-mode="fast"] {
+  html {
     scroll-behavior: auto;
   }
 }
 
 body {
-  margin: 0;
-  background: var(--ground);
+  background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-stix), "STIX Two Text", Georgia, serif;
-  font-size: var(--step-body);
-  line-height: 1.5;
+  font: 400 1.0625rem/1.6 var(--display);
+  font-variation-settings: "wdth" 100;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-h1,
-h2,
-h3,
-h4 {
-  font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
-  margin: 0;
+img {
+  display: block;
+  max-width: 100%;
 }
 
 a {
   color: inherit;
   text-decoration-thickness: 1px;
-  text-underline-offset: 0.18em;
+  text-underline-offset: 0.22em;
+}
+
+a:hover {
+  color: var(--orange-text);
 }
 
 :focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 2px solid var(--orange);
   outline-offset: 3px;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+ul,
+ol {
+  padding-left: 1.15rem;
+}
+
+::selection {
+  background: var(--orange);
+  color: var(--on-orange);
+}
+
+.wrap {
+  max-width: 92rem;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.6;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-variation-settings: normal;
+}
+
+.mono b {
+  color: var(--orange-text);
+  font-weight: 600;
 }
 
 .skip-link {
   position: absolute;
-  left: var(--gutter);
-  top: -100px;
+  left: 1rem;
+  top: -4rem;
   z-index: 50;
-  background: var(--ground);
-  padding: 8px 12px;
-}
-.skip-link:focus {
-  top: 8px;
-}
-
-.button,
-.skip {
-  display: inline-block;
-  font: inherit;
-  font-size: var(--step-small);
-  padding: 12px 20px;
-  border: 0;
-  border-radius: 0;
-  background: var(--accent);
-  color: var(--accent-ink);
-  text-decoration: none;
-  cursor: pointer;
-  transition: transform 160ms var(--ease-out);
-}
-.button:active,
-.skip:active {
-  transform: scale(0.97);
-}
-
-/* ------------------------------------------------------------ top bar */
-.topbar {
-  position: fixed;
-  inset: 0 0 auto 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 28px;
-  padding: 14px var(--gutter);
-  background: var(--ground);
-}
-.wordmark {
-  font-size: 1.15rem;
-  text-decoration: none;
-  margin-right: auto;
-}
-.topbar nav {
-  display: flex;
-  gap: 22px;
-}
-.topbar nav a {
-  text-decoration: none;
-  font-size: var(--step-small);
-}
-.topbar nav a:hover {
-  text-decoration: underline;
-}
-.skip {
   background: var(--ink);
-  color: var(--ground);
-}
-html[data-eligible="false"] .skip,
-html[data-mode="fast"] .hero-actions .skip {
-  display: none;
+  color: var(--paper);
+  padding: 0.6rem 1rem;
 }
 
-/* at the start of the tour the scene is the whole screen; the bar (nav, Skip the tour, progress)
-   comes back the moment the walk starts, so there is always a way out */
-html[data-mode="tour"] .topbar {
-  transition:
-    opacity 300ms ease,
-    transform 300ms var(--ease-out),
-    visibility 0s;
-}
-html[data-mode="tour"]:not([data-scrolled="true"]):not([data-past-hero="true"]) .topbar {
-  opacity: 0;
-  transform: translateY(-100%);
-  pointer-events: none;
-  visibility: hidden;
-  transition:
-    opacity 300ms ease,
-    transform 300ms var(--ease-out),
-    visibility 0s 300ms;
-}
-.tour-progress {
-  display: none;
-}
-html[data-mode="tour"] .tour-progress {
-  display: block;
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 3px;
-  background: var(--accent);
-  transform-origin: left center;
-  transform: scaleX(var(--tour-p, 0));
+.skip-link:focus {
+  top: 0.75rem;
 }
 
-/* ------------------------------------------------------------ hero */
-.hero {
-  position: relative;
-  z-index: 1;
-}
-html[data-mode="tour"] .hero {
-  height: 380vh;
-}
-.hero-sticky {
+/* ---------- top bar: the title strip of the sheet ---------- */
+
+.bar {
   position: sticky;
   top: 0;
-  height: 100vh;
-  height: 100svh;
-  overflow: hidden;
-  pointer-events: none;
-}
-.hero-still img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  background: #e9e1cf;
-  transition: opacity 600ms ease;
-}
-html:has(.tour[data-ready="true"]) .hero-still img {
-  opacity: 0;
-}
-.hero-panel {
-  position: absolute;
-  left: var(--gutter);
-  top: 92px;
-  max-width: 27rem;
-  padding: 24px 28px 28px;
-  background: var(--ground);
-  pointer-events: auto;
-  transition:
-    opacity 400ms var(--ease-out),
-    transform 400ms var(--ease-out);
-}
-.hero-panel h1 {
-  font-size: var(--step-hero);
-  letter-spacing: -0.03em;
-}
-.hero-panel p {
-  margin: 16px 0 24px;
-  font-size: var(--step-lead);
-  line-height: 1.35;
-}
-.hero-panel .hero-role {
-  margin: 8px 0 0;
-}
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  z-index: 20;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
 }
 
-/* tour mode: a small card in the top-left corner, so the scene is the hero */
-html[data-mode="tour"] .hero-panel {
-  top: var(--gutter);
-  max-width: 21rem;
-  padding: 18px 20px 20px;
-}
-html[data-mode="tour"] .hero-panel h1 {
-  font-size: 1.75rem;
-  letter-spacing: -0.02em;
-}
-html[data-mode="tour"] .hero-panel p {
-  font-size: 1rem;
-  line-height: 1.4;
-  margin: 8px 0 16px;
-}
-html[data-mode="tour"] .hero-panel .hero-role {
-  font-size: 1.15rem;
-  margin: 4px 0 0;
-}
-html[data-mode="tour"] .hero-panel .button {
-  font-size: 1rem;
-  padding: 10px 18px;
-}
-/* the primary action is the filled one; skipping is a quiet text link beside it */
-.hero-actions {
+.bar-inner {
+  display: flex;
   align-items: center;
+  gap: 2rem;
+  min-height: var(--bar-h);
 }
-html[data-mode="tour"] .hero-actions .skip {
-  background: none;
-  color: var(--ink);
-  font-size: 0.9375rem;
-  padding: 6px 4px;
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
+
+.wordmark {
+  font-weight: 800;
+  font-variation-settings: "wdth" 125;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
 }
-.hero-links {
+
+.bar nav {
   display: flex;
-  gap: 16px;
-  margin: 14px 0 0 !important;
-  font-size: var(--step-small) !important;
-}
-.hero-links a {
-  color: var(--muted);
-}
-.hero-links a:hover {
-  color: var(--ink);
-}
-/* once faded, the card also leaves the tab order (visibility flips after the fade) */
-html[data-scrolled="true"] .hero-panel {
-  opacity: 0;
-  transform: translateY(-16px);
-  pointer-events: none;
-  visibility: hidden;
-  transition:
-    opacity 400ms var(--ease-out),
-    transform 400ms var(--ease-out),
-    visibility 0s 400ms;
-}
-
-/* ------------------------------------------------------------ the 3D tour layer */
-.tour {
-  display: none;
-}
-html[data-mode="tour"] .tour {
-  display: block;
-}
-.tour-canvas {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 0;
-  display: block;
-  opacity: 0;
-  transition: opacity 700ms ease;
-}
-.tour[data-ready="true"] .tour-canvas {
-  opacity: 1;
-}
-.kitten-hit {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 3;
-  width: 0;
-  height: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  cursor: pointer;
-  visibility: hidden;
-}
-/* two-tone ring: visible on the dark veranda and on the bright sky alike */
-.kitten-hit:focus-visible {
-  outline: 3px solid #f2f1ec;
-  outline-offset: 0;
-  box-shadow: 0 0 0 6px #1b2342;
-}
-.kitten-bubble {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 3;
-  margin: 0;
-  max-width: 17rem;
-  padding: 10px 14px;
-  /* the kitten speaks in indigo, so its bubble never reads as part of a panel */
-  background: #1b2342;
-  color: #f2f1ec;
-  font-size: 0.82rem;
-  line-height: 1.35;
-  pointer-events: none;
-  transform: translate(calc(var(--bx, -999px) - 50% + var(--bdx, 0px)), calc(var(--by, -999px) - 100% - 14px));
-  opacity: 0;
-  transition: opacity 300ms ease;
-}
-.kitten-bubble::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -8px;
-  width: 16px;
-  height: 8px;
-  margin-left: -8px;
-  background: #1b2342;
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-}
-.tour[data-ready="true"] .kitten-bubble[data-visible="true"] {
-  opacity: 1;
-}
-
-/* capture mode, used to render the stills for the fast version */
-html[data-capture="1"] .topbar,
-html[data-capture="1"] .hero-panel,
-html[data-capture="1"] .kitten-bubble {
-  visibility: hidden;
-}
-
-/* ------------------------------------------------------------ sections */
-.sections {
-  position: relative;
-  z-index: 2;
-  background: var(--ground);
-}
-.section {
-  padding: clamp(80px, 12vw, 180px) var(--gutter) 0;
-  max-width: 1280px;
-  margin: 0 auto;
-  scroll-margin-top: 64px;
-}
-.section > h2 {
-  font-size: var(--step-head);
-  margin-bottom: 48px;
-}
-.section h3 {
-  font-size: var(--step-lead);
-  margin-bottom: 8px;
-}
-.section h4 {
-  font-size: var(--step-body);
-  font-weight: 600;
-  letter-spacing: 0;
-  margin: 24px 0 6px;
-}
-.section ul {
-  padding-left: 1.2em;
-  margin: 0;
-}
-.section li + li {
-  margin-top: 6px;
-}
-.lead {
-  font-size: var(--step-lead);
-  line-height: 1.35;
-}
-.meta,
-.stack {
-  color: var(--muted);
-  font-size: var(--step-small);
-}
-.links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-.jobs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 30rem), 1fr));
-  gap: 56px;
-}
-.project {
-  display: grid;
-  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  gap: 48px;
-  padding: 48px 0;
-}
-.project + .project {
-  border-top: 0;
-  background: none;
-}
-.project-text {
-  max-width: 44rem;
-}
-.project-media {
-  margin: 0;
-  align-self: start;
-  position: sticky;
-  top: 96px;
-}
-.project-media img,
-.project-media video {
-  display: block;
-  width: 100%;
-  height: auto;
-  background: var(--surface);
-}
-.ledger {
-  max-width: none;
-  background: var(--oxide);
-  padding-bottom: clamp(64px, 8vw, 120px);
-  margin-top: clamp(80px, 12vw, 180px);
-}
-.ledger-sheet {
-  max-width: 1080px;
-  margin: 0 auto;
-  background: #f2f1ec;
-  color: #1b2342;
-  padding: clamp(28px, 5vw, 64px);
-}
-.ledger-sheet h2 {
-  font-size: var(--step-head);
-  margin-bottom: 32px;
-}
-.ledger-row-major {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 32px;
-  padding: 20px 0;
-}
-.ledger-row-major .stack {
-  color: #4f5672;
-}
-.ledger-list {
-  list-style: none;
-  padding: 24px 0 0 !important;
-}
-.ledger-list .ledger-row {
-  display: grid;
-  grid-template-columns: minmax(12rem, 1fr) minmax(0, 2fr);
-  gap: 24px;
-  padding: 8px 0;
-}
-.about {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
-  gap: 56px;
-}
-.about h3 {
-  margin-top: 32px;
-}
-.contact {
-  padding-bottom: clamp(80px, 12vw, 160px);
-}
-.footer {
-  position: relative;
-  z-index: 2;
-  background: var(--teak);
-  color: var(--on-field);
-  padding: 64px var(--gutter) 48px;
-}
-.footer-name {
-  font-size: clamp(2.5rem, 9vw, 9rem);
-  letter-spacing: -0.04em;
-  line-height: 1;
-  margin: 0 0 24px;
-}
-.footer p:last-child {
-  font-size: var(--step-small);
-  margin: 0;
-}
-
-/* ------------------------------------------------------------ narrow screens */
-@media (max-width: 767px) {
-  .topbar {
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-  .topbar nav {
-    order: 3;
-    width: 100%;
-    gap: 16px;
-  }
-  /* phones: the still sits above the panel instead of behind it, so the whole house and name show */
-  .hero-sticky {
-    height: auto;
-    position: relative;
-    padding-top: 88px;
-  }
-  .hero-still img {
-    position: static;
-    display: block;
-    aspect-ratio: 1 / 1.08;
-    height: auto;
-    object-position: 50% 30%;
-  }
-  .hero-panel {
-    position: static;
-    max-width: none;
-    padding: 24px var(--gutter) 32px;
-  }
-  .project,
-  .ledger-row-major,
-  .ledger-list .ledger-row {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-  }
-  .project-media {
-    position: static;
-    order: -1;
-  }
-}
-
-/* ------------------------------------------------------------ the walk through the house (tour mode)
-   Experience and Projects become stretches of scroll with the house showing through; their articles
-   become panels pinned to the scene by HouseTour.tsx. On the fast page none of this applies. */
-html[data-mode="tour"] .sections {
-  background: transparent;
-}
-html[data-mode="tour"] #experience,
-html[data-mode="tour"] #projects {
-  max-width: none;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-}
-/* long enough that each panel stays fully readable for about a screen of scrolling */
-html[data-mode="tour"] #experience {
-  height: 400vh;
-}
-html[data-mode="tour"] #projects {
-  height: 560vh;
-}
-/* the walk carries on to the end of the house: no plain sections after the corridor */
-html[data-mode="tour"] #other-work,
-html[data-mode="tour"] #about,
-html[data-mode="tour"] #contact {
-  max-width: none;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  height: 200vh;
-}
-html[data-mode="tour"] #contact {
-  height: 230vh;
-}
-
-/* chapter titles: the section heading sits top-left while you are in that part of the house */
-html[data-mode="tour"] #experience > h2,
-html[data-mode="tour"] #projects > h2 {
-  position: fixed;
-  top: 76px;
-  left: var(--gutter);
-  z-index: 4;
-  margin: 0;
-  padding: 8px 16px 10px;
-  background: var(--ground);
-  font-size: clamp(1.8rem, 1.2rem + 1.8vw, 2.8rem);
-  opacity: 0;
-  transform: translateY(-8px);
-  transition:
-    opacity 400ms var(--ease-out),
-    transform 400ms var(--ease-out);
-  pointer-events: none;
-}
-html[data-chapter="experience"] #experience > h2,
-html[data-chapter="projects"] #projects > h2 {
-  opacity: 1;
-  transform: none;
-}
-
-/* the pinned panels */
-html[data-mode="tour"] .jobs {
-  display: block;
-}
-html[data-mode="tour"] [data-anchor] {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 4;
-  width: min(28rem, 44vw);
-  max-height: calc(100vh - 170px);
-  overflow: auto;
-  margin: 0;
-  padding: 18px 22px 20px;
-  background: var(--ground);
-  font-size: 0.92rem;
-  line-height: 1.45;
-  opacity: 0;
-  pointer-events: none;
-  will-change: transform, opacity;
-  transform: translate(-200vw, 0);
-  /* no inner scrollbar: a panel taller than the screen scrolls in step with the page (HouseTour.tsx),
-     so the wheel always moves the walk and never gets stuck inside a panel */
-  overflow: hidden;
-}
-html[data-mode="tour"] [data-anchor][data-active="true"] {
-  pointer-events: auto;
-}
-html[data-mode="tour"] [data-anchor] h3 {
-  font-size: 1.4rem;
-}
-html[data-mode="tour"] [data-anchor] h4 {
-  margin: 12px 0 4px;
+  gap: 1.5rem;
+  margin-left: auto;
   font-size: 0.95rem;
 }
-html[data-mode="tour"] [data-anchor] .lead {
-  font-size: 1.05rem;
-}
-html[data-mode="tour"] [data-anchor] li + li {
-  margin-top: 3px;
-}
-html[data-mode="tour"] .project {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-html[data-mode="tour"] .project-media {
-  position: static;
-  order: -1;
-  margin: 0 0 12px;
-}
-html[data-mode="tour"] .project-media img,
-html[data-mode="tour"] .project-media video {
-  max-height: 130px;
-  object-fit: cover;
+
+.bar nav a {
+  text-decoration: none;
+  padding-block: 0.5rem;
 }
 
-/* the last three panels: the ledger sheet, the about letter, the contact card */
-html[data-mode="tour"] .ledger-sheet[data-anchor] {
-  width: min(46rem, 58vw);
-  padding: 26px 32px 26px;
+.bar nav a:hover {
+  text-decoration: underline;
 }
-html[data-mode="tour"] .ledger-sheet h2,
-html[data-mode="tour"] .about-panel h2,
-html[data-mode="tour"] .contact-panel h2 {
-  font-size: clamp(1.8rem, 1.2rem + 1.5vw, 2.6rem);
-  margin-bottom: 16px;
+
+.theme-toggle {
+  min-width: 3.6rem;
+  min-height: 2.25rem;
+  padding: 0 0.7rem;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  color: var(--ink);
 }
-html[data-mode="tour"] .ledger-row-major {
-  padding: 10px 0;
-  gap: 20px;
+
+.theme-toggle:hover {
+  border-color: var(--ink);
 }
-html[data-mode="tour"] .ledger-row-major h3 {
-  font-size: 1.15rem;
+
+/* ---------- buttons ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 3rem;
+  padding: 0 1.4rem;
+  font: 600 1rem var(--display);
+  font-variation-settings: "wdth" 110;
+  text-decoration: none;
+  border: 1.5px solid var(--ink);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--ink);
+  transition: background-color 160ms ease, color 160ms ease, transform 160ms ease;
 }
-html[data-mode="tour"] .ledger-row-major p {
-  margin: 4px 0;
+
+.btn:active {
+  transform: translateY(1px);
 }
-html[data-mode="tour"] .ledger-list {
-  padding-top: 12px !important;
+
+.btn-primary {
+  background: var(--orange);
+  border-color: var(--orange);
+  color: var(--on-orange);
 }
-/* in the tour the smaller builds sit in two columns, name over description, so the sheet fits one screen */
-html[data-mode="tour"] .ledger-list {
+
+.btn-primary:hover {
+  color: var(--on-orange);
+  background: color-mix(in srgb, var(--orange) 88%, white);
+}
+
+.btn-secondary:hover {
+  color: var(--paper);
+  background: var(--ink);
+}
+
+.btn .tag {
+  font: 500 0.68rem/1 var(--mono);
+  letter-spacing: 0.08em;
+  border: 1px solid currentColor;
+  padding: 0.2rem 0.35rem;
+  border-radius: 2px;
+}
+
+/* The flyover is offered only where the head script found a capable device. */
+:root:not([data-fly="yes"]) .fly,
+:root:not([data-fly="yes"]) .fly-only {
+  display: none;
+}
+
+/* ---------- hero ---------- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Contour lines: one static SVG used as a mask, so its colour follows the theme. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--contour);
+  -webkit-mask: url("/contours.svg") center / cover no-repeat;
+  mask: url("/contours.svg") center / cover no-repeat;
+  pointer-events: none;
+}
+
+.hero-grid {
+  position: relative;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  column-gap: 28px;
-  row-gap: 8px;
-}
-html[data-mode="tour"] .ledger-list .ledger-row {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  padding: 0;
-  font-size: 0.84rem;
-  line-height: 1.32;
-}
-html[data-mode="tour"] .about-panel[data-anchor] {
-  width: min(46rem, 58vw);
-}
-html[data-mode="tour"] .about-panel .about {
-  gap: 32px;
-}
-html[data-mode="tour"] .about-panel h3 {
-  margin-top: 16px;
-  font-size: 1.1rem;
-}
-html[data-mode="tour"] .contact-panel[data-anchor] {
-  width: min(30rem, 50vw);
-}
-html[data-mode="tour"] .contact-panel .lead {
-  margin: 0 0 18px;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+  column-gap: clamp(2rem, 5vw, 6rem);
+  row-gap: clamp(2rem, 5vh, 3.5rem);
+  align-items: start;
+  padding-block: clamp(3rem, 9vh, 6.5rem) clamp(3rem, 8vh, 5.5rem);
 }
 
-/* the footer closes the walk: a teak strip at the foot of the last view, the name across it */
-html[data-mode="tour"] .footer {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 3;
-  padding: 18px var(--gutter) 16px;
+.hero-name {
+  grid-column: 1 / -1;
+}
+
+.sheet-label {
   display: flex;
-  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+h1 {
+  font-weight: 800;
+  font-variation-settings: "wdth" 125;
+  font-size: clamp(2rem, 9.4vw, 7.25rem);
+  line-height: 0.92;
+  letter-spacing: -0.015em;
+  text-transform: uppercase;
+}
+
+h1 span {
+  display: block;
+}
+
+.hero-role {
+  font-size: clamp(1.35rem, 2.3vw, 2rem);
+  font-weight: 500;
+  font-variation-settings: "wdth" 110;
+  line-height: 1.2;
+}
+
+.hero-lede {
+  max-width: 38rem;
+  margin-top: 0.9rem;
+  font-size: 1.125rem;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 2rem;
+}
+
+.hero-links {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1.4rem;
+}
+
+.legend {
+  background: var(--paper);
+  border: 1.5px solid var(--rule-strong);
+  font-size: 0.95rem;
+}
+
+.legend-head {
+  display: flex;
   justify-content: space-between;
-  gap: 24px;
-  opacity: 0;
-  transform: translateY(100%);
-  visibility: hidden;
-  transition:
-    opacity 500ms var(--ease-out),
-    transform 500ms var(--ease-out),
-    visibility 0s 500ms;
+  padding: 0.65rem 1rem;
+  border-bottom: 1.5px solid var(--rule-strong);
+  color: var(--ink);
+  font-weight: 600;
 }
-html[data-mode="tour"][data-chapter="contact"] .footer {
-  opacity: 1;
-  transform: none;
-  visibility: visible;
-  transition:
-    opacity 500ms var(--ease-out),
-    transform 500ms var(--ease-out);
+
+.legend dl > div {
+  display: grid;
+  grid-template-columns: 7.25rem 1fr;
+  border-bottom: 1px solid var(--rule);
 }
-html[data-mode="tour"] .footer-name {
-  font-size: clamp(1.8rem, 1rem + 3vw, 3.4rem);
-  margin: 0;
+
+.legend dl > div:last-child {
+  border-bottom: 0;
 }
-html[data-mode="tour"] .footer p:last-child {
-  max-width: 34rem;
+
+.legend dt,
+.legend dd {
+  padding: 0.6rem 1rem;
+}
+
+.legend dt {
+  border-right: 1px solid var(--rule);
+  line-height: 1.9;
+}
+
+.status::before {
+  content: "";
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.5rem;
+  background: var(--orange);
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+}
+
+.legend-scale {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-top: 1.5px solid var(--rule-strong);
+}
+
+.legend-scale i {
+  display: block;
+  width: 8rem;
+  height: 0.4rem;
+  border: 1px solid var(--ink);
+  background: repeating-linear-gradient(90deg, var(--ink) 0 2rem, transparent 2rem 4rem);
+}
+
+/* ---------- sheets ---------- */
+
+.sheet {
+  border-bottom: 1px solid var(--rule);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 3rem 3rem;
+  padding-bottom: clamp(2.5rem, 6vh, 4rem);
+}
+
+.sheet-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 0.5rem 2rem;
+  padding-block: clamp(3rem, 8vh, 5.5rem) 1.25rem;
+  border-bottom: 1.5px solid var(--rule-strong);
+}
+
+.sheet-title {
+  margin-top: 0.5rem;
+  font-weight: 800;
+  font-variation-settings: "wdth" 125;
+  font-size: clamp(2rem, 4.8vw, 4rem);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.sheet-note {
   text-align: right;
 }
 
-/* role and dates read at full size: they are what a recruiter scans for first */
-.job .role {
-  margin: 2px 0 6px;
-  font-weight: 600;
+/* experience */
+
+.job {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 8fr);
+  gap: 1rem clamp(1.5rem, 4vw, 4rem);
+  padding-block: 2.25rem;
+  border-bottom: 1px solid var(--rule);
 }
-html[data-mode="tour"] .job .role {
+
+.job:last-child {
+  border-bottom: 0;
+}
+
+.job-meta {
+  display: grid;
+  gap: 0.3rem;
+  align-content: start;
+}
+
+.job h3 {
+  font-weight: 700;
+  font-variation-settings: "wdth" 112;
+  font-size: 1.65rem;
+  line-height: 1.15;
+}
+
+.job-role {
+  margin-top: 0.15rem;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.job-summary {
+  margin-top: 0.9rem;
+  max-width: 52rem;
+  font-size: 1.15rem;
+}
+
+.job ul {
+  display: grid;
+  gap: 0.55rem;
+  max-width: 52rem;
+  margin-top: 1rem;
+}
+
+.job li::marker,
+.plate li::marker {
+  color: var(--orange-text);
+}
+
+.chips {
+  margin-top: 1.1rem;
+  max-width: 52rem;
+}
+
+/* plates */
+
+.plates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.5rem, 2.5vw, 2.5rem);
+  padding-top: 2.5rem;
+}
+
+.plate,
+.small-plate {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1.5px solid var(--rule-strong);
+}
+
+/* registration marks in two corners */
+.plate::before,
+.plate::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid var(--orange);
+}
+
+.plate::before {
+  top: -8px;
+  left: -8px;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+.plate::after {
+  right: -8px;
+  bottom: -8px;
+  border-top: 0;
+  border-left: 0;
+}
+
+.plate-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.plate-figure {
+  padding: 1.4rem 1.25rem 1.15rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.plate-figure strong {
+  display: block;
+  font-weight: 800;
+  font-variation-settings: "wdth" 125;
+  font-size: clamp(2.4rem, 4.2vw, 3.6rem);
+  line-height: 1;
+  letter-spacing: -0.01em;
+}
+
+.plate-figure span {
+  display: block;
+  max-width: 32rem;
+  margin-top: 0.5rem;
+  color: var(--ink-2);
+}
+
+.plate-media {
+  display: grid;
+  border-bottom: 1px solid var(--rule);
+}
+
+.plate-media.count-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.plate-media figure {
+  position: relative;
+}
+
+.plate-media.count-3 figure + figure {
+  border-left: 1px solid var(--rule);
+}
+
+.plate-media img {
+  width: 100%;
+  aspect-ratio: 297 / 308;
+  object-fit: cover;
+}
+
+.plate-media.count-1 img {
+  aspect-ratio: 16 / 8;
+}
+
+.plate-media figcaption {
+  padding: 0.4rem 0.75rem;
+  border-top: 1px solid var(--rule);
+}
+
+.ndvi-key {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* the colour scale the vegetation tiles were drawn with (RdYlGn) */
+.ndvi-key i {
+  flex: 0 0 9rem;
+  height: 0.45rem;
+  background: linear-gradient(90deg, #a50026, #f46d43, #fee08b, #d9ef8b, #66bd63, #006837);
+}
+
+.plate-body {
+  display: grid;
+  gap: 0.8rem;
+  align-content: start;
+  padding: 1.25rem;
+  flex: 1;
+}
+
+.plate-body h3 {
+  font-weight: 700;
+  font-variation-settings: "wdth" 112;
+  font-size: 1.45rem;
+  line-height: 1.15;
+}
+
+.plate-body ul {
+  display: grid;
+  gap: 0.35rem;
   font-size: 0.98rem;
 }
 
-/* project panels: link beside the name, result first, two columns so nothing is cut off */
-.project-head {
+.plate details {
+  border-top: 1px solid var(--rule);
+  padding-top: 0.75rem;
+}
+
+.plate summary {
+  cursor: pointer;
+  font-weight: 600;
+  width: fit-content;
+}
+
+.plate summary:hover {
+  color: var(--orange-text);
+}
+
+.plate details[open] summary {
+  margin-bottom: 0.6rem;
+}
+
+.plate details p {
+  margin-bottom: 0.6rem;
+}
+
+.plate-foot {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
   justify-content: space-between;
-  gap: 4px 20px;
+  align-items: baseline;
+  gap: 0.5rem 1.5rem;
+  padding: 0.8rem 1.25rem;
+  border-top: 1px solid var(--rule);
 }
-.project-head h3 {
-  margin: 0;
+
+.plate-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  white-space: nowrap;
 }
-.project-head .links {
-  margin: 0;
+
+/* the drawn figures */
+
+.chart {
+  padding: 1.1rem 1.25rem 1.25rem;
+  border-bottom: 1px solid var(--rule);
 }
-html[data-mode="tour"] .project[data-anchor] {
-  width: min(46rem, 56vw);
-  max-height: calc(100vh - 170px);
+
+.chart figcaption span {
+  text-transform: none;
 }
-html[data-mode="tour"] .project-cols {
+
+.chart-bars dl {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: 24px;
-}
-html[data-mode="tour"] .project-cols h4:first-child {
-  margin-top: 4px;
-}
-html[data-mode="tour"] .project .lead {
-  margin: 6px 0 4px;
-}
-html[data-mode="tour"] .project-media video {
-  pointer-events: auto;
+  gap: 0.7rem;
+  margin-top: 0.9rem;
 }
 
-/* the current chapter in the top bar */
-.topbar nav a[aria-current] {
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 0.3em;
+.bar-row {
+  display: grid;
+  grid-template-columns: 6.5rem 1fr;
+  align-items: center;
+  gap: 1rem;
 }
 
-/* the ledger looks like a ledger page: warm paper, a red margin rule, faint ruling */
-html[data-mode="tour"] .ledger-sheet[data-anchor] {
-  background-color: #f4ecd8;
-  background-image:
-    linear-gradient(to right, transparent 18px, #b8452c 18px, #b8452c 20px, transparent 20px, transparent 24px, #b8452c 24px, #b8452c 25px, transparent 25px),
-    repeating-linear-gradient(to bottom, transparent 0, transparent 25px, rgba(43, 58, 122, 0.12) 25px, rgba(43, 58, 122, 0.12) 26px);
-  padding-left: 46px;
+.bar-row dt {
+  font-weight: 500;
 }
 
-/* the about panel reads as a letter, signed */
-html[data-mode="tour"] .about-panel[data-anchor] {
-  padding: 30px 40px 28px;
+.bar-row dd {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
-.about-sign {
-  margin: 18px 0 0;
-  font-style: italic;
+
+.bar-fill {
+  display: block;
+  height: 1.1rem;
+  background: var(--ink);
+}
+
+.bar-fill.is-accent {
+  background: var(--orange);
+  outline: 1.5px solid var(--ink);
+}
+
+.bar-value {
+  font: 500 0.85rem var(--mono);
+  white-space: nowrap;
+}
+
+.chart-steps ol {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.9rem 0;
+  margin-top: 1rem;
+  padding: 0;
+  counter-reset: step;
+}
+
+.chart-steps li {
+  position: relative;
+  padding: 1.6rem 0.75rem 0 0;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  counter-increment: step;
+}
+
+/* a survey traverse: numbered stations joined by a line */
+.chart-steps li::before {
+  content: counter(step);
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  font: 600 0.68rem var(--mono);
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+}
+
+.chart-steps li::after {
+  content: "";
+  position: absolute;
+  top: 0.6rem;
+  left: 1.2rem;
+  right: 0;
+  border-top: 1.5px dashed var(--rule);
+}
+
+.chart-steps li:nth-child(3n)::after {
+  display: none;
+}
+
+.chart-steps li.is-accent::before {
+  background: var(--orange);
+  color: var(--on-orange);
+}
+
+/* the invitation */
+
+.invite {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.75rem;
+  margin-top: 3rem;
+  padding: 1.5rem 1.75rem;
+  background: var(--paper);
+  border: 1.5px dashed var(--ink);
+}
+
+.invite svg {
+  width: 64px;
+  height: 64px;
+}
+
+.invite-pin {
+  fill: var(--orange);
+  stroke: var(--ink);
+}
+
+.invite h3 {
+  font-weight: 700;
+  font-variation-settings: "wdth" 112;
+  font-size: 1.4rem;
+}
+
+.invite p {
+  max-width: 44rem;
+  margin-top: 0.2rem;
+  color: var(--ink-2);
+}
+
+/* coursework and earlier work */
+
+.small-plates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(1.25rem, 2.5vw, 2rem);
+  padding-top: 2.5rem;
+}
+
+.small-plate .plate-body h3 {
+  font-size: 1.3rem;
+}
+
+.small-highlight {
+  padding-left: 0.9rem;
+  border-left: 2px solid var(--orange);
+}
+
+.note {
+  color: var(--ink-2);
+  font-size: 0.95rem;
+}
+
+.gazetteer {
+  margin-top: 2.5rem;
+  overflow-x: auto;
+}
+
+.gazetteer table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--paper);
+  border: 1.5px solid var(--rule-strong);
+}
+
+.gazetteer caption {
+  text-align: left;
+  padding-bottom: 0.6rem;
+}
+
+.gazetteer th,
+.gazetteer td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--rule);
+}
+
+.gazetteer thead th {
+  font-weight: 500;
+  border-bottom: 1.5px solid var(--rule-strong);
+}
+
+.gazetteer tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.gazetteer tbody td:nth-child(3) {
+  min-width: 22rem;
+}
+
+.gazetteer tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+/* about */
+
+.about {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  padding-top: 2.5rem;
+}
+
+.about-letter {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
   font-size: 1.15rem;
+}
+
+.about-lead {
+  font-size: clamp(1.4rem, 2.2vw, 1.85rem);
+  font-weight: 500;
+  font-variation-settings: "wdth" 108;
+  line-height: 1.3;
+}
+
+.about-facts h3 {
+  margin: 1.75rem 0 0.6rem;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.about-facts h3:first-child {
+  margin-top: 0;
+}
+
+.edu {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.edu li {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.skills {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.skills dt {
+  font-weight: 600;
+}
+
+/* contact */
+
+.contact {
+  display: grid;
+  gap: 1rem;
+  padding-block: 2.5rem 1rem;
+}
+
+.contact-line {
+  font-size: 1.15rem;
+  color: var(--ink-2);
+}
+
+.contact-email {
+  width: fit-content;
+  font-weight: 800;
+  font-variation-settings: "wdth" 120;
+  font-size: clamp(1.4rem, 4.4vw, 3.4rem);
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  text-decoration-thickness: 2px;
+  text-decoration-color: var(--orange);
+}
+
+.contact-links {
+  display: flex;
+  gap: 1.75rem;
+  font-size: 1.1rem;
+}
+
+.footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 2rem;
+  padding-block: 1.75rem;
+}
+
+/* ---------- fun mode shell ---------- */
+
+.fun {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 2rem var(--gutter);
+  background: #0b1526;
+  color: #ece6d6;
+  --ink: #ece6d6;
+  --ink-2: #a3afc2;
+  --rule: rgb(236 230 214 / 0.18);
+  --orange: #ff6a2b;
+  --orange-text: #ff8b57;
+  --on-orange: #0b1526;
+  --paper: #0b1526;
+}
+
+.fun-back {
+  position: fixed;
+  top: 1.25rem;
+  right: var(--gutter);
+}
+
+.fun-body {
+  max-width: 44rem;
+}
+
+.fun-body h2 {
+  margin: 0.5rem 0 0.75rem;
+  font-weight: 800;
+  font-variation-settings: "wdth" 125;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.fun-route {
+  list-style: none;
+  padding: 0;
+  margin-top: 2rem;
+  border-top: 1px solid var(--rule);
+}
+
+.fun-route li {
+  display: grid;
+  grid-template-columns: 11rem 8rem 1fr;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+/* ---------- smaller screens ---------- */
+
+@media (max-width: 1100px) {
+  .bar nav {
+    display: none;
+  }
+
+  .theme-toggle {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  .hero-grid,
+  .job,
+  .plates,
+  .small-plates,
+  .about,
+  .invite {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sheet-head {
+    grid-template-columns: 1fr;
+  }
+
+  .sheet-note {
+    text-align: left;
+  }
+
+  .invite svg {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .chart-steps ol {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .chart-steps li:nth-child(3n)::after {
+    display: block;
+  }
+
+  .chart-steps li:nth-child(2n)::after {
+    display: none;
+  }
+
+  .legend dl > div {
+    grid-template-columns: 6.25rem 1fr;
+  }
+
+  .plate-media.count-3 figcaption {
+    padding-inline: 0.4rem;
+    font-size: 0.65rem;
+    letter-spacing: 0.03em;
+  }
 }
