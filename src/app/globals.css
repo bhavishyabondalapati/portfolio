@@ -1032,59 +1032,393 @@ h1 span {
   padding-block: 1.75rem;
 }
 
-/* ---------- fun mode shell ---------- */
+/* ---------- fun mode: the flyover ---------- */
 
 .fun {
   position: fixed;
   inset: 0;
   z-index: 100;
-  display: grid;
-  place-items: center;
-  padding: 2rem var(--gutter);
-  background: #0b1526;
+  overflow: hidden;
+  background: #0a1426;
   color: #ece6d6;
   --ink: #ece6d6;
   --ink-2: #a3afc2;
-  --rule: rgb(236 230 214 / 0.18);
+  --rule: rgb(236 230 214 / 0.22);
   --orange: #ff6a2b;
   --orange-text: #ff8b57;
   --on-orange: #0b1526;
   --paper: #0b1526;
+  --journey: 0;
+  overscroll-behavior: contain;
 }
 
-.fun-back {
-  position: fixed;
-  top: 1.25rem;
-  right: var(--gutter);
+.fun-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 1.4s ease-out;
 }
 
-.fun-body {
-  max-width: 44rem;
+.fun[data-stage="ready"] .fun-canvas {
+  opacity: 1;
 }
 
-.fun-body h2 {
-  margin: 0.5rem 0 0.75rem;
+/* text over the scene gets a soft navy halo, so it reads on bright haze and glowing lines */
+.fun-sheet,
+.fun-title,
+.fun-label,
+.fun-credit,
+.fun-rail {
+  text-shadow: 0 0 12px #0a1426, 0 0 3px #0a1426;
+}
+
+.fun-top {
+  position: absolute;
+  inset: 1.25rem var(--gutter) auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fun-sheet b,
+.fun-panel-sheet b,
+.fun-label b {
+  color: var(--orange-text);
+  font-weight: 600;
+}
+
+.fun-title {
+  position: absolute;
+  left: var(--gutter);
+  bottom: 19vh;
+  max-width: 40rem;
+  opacity: calc(1 - var(--journey) * 7);
+  transform: translateY(calc(var(--journey) * -60px));
+  pointer-events: none;
+}
+
+.fun:not([data-stage="ready"]) .fun-title {
+  opacity: 0;
+}
+
+.fun-title h2 {
   font-weight: 800;
   font-variation-settings: "wdth" 125;
-  font-size: clamp(2rem, 4vw, 3.2rem);
-  line-height: 1.05;
+  font-size: clamp(2.5rem, 5.2vw, 4.75rem);
+  line-height: 0.95;
   text-transform: uppercase;
+  letter-spacing: -0.01em;
 }
 
-.fun-route {
+.fun-title p {
+  margin-top: 0.9rem;
+  font-size: 1.2rem;
+}
+
+.fun-title .fun-hint {
+  margin-top: 1.6rem;
+  color: var(--ink-2);
+}
+
+/* the route as a line of stations across the top, like a transit map */
+.fun-rail {
+  position: absolute;
+  top: 1.1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: calc(min(1, var(--journey) * 6));
+}
+
+.fun-rail ol {
   list-style: none;
+  display: flex;
   padding: 0;
-  margin-top: 2rem;
+  margin: 0;
+}
+
+.fun-rail li {
+  position: relative;
+  width: 10.5rem;
+}
+
+/* the line between stations */
+.fun-rail li + li::before {
+  content: "";
+  position: absolute;
+  top: 1.05rem;
+  right: calc(50% + 10px);
+  width: calc(100% - 20px);
+  height: 1px;
+  background: var(--rule);
+}
+
+.fun-rail button {
+  display: grid;
+  justify-items: center;
+  gap: 0.1rem;
+  width: 100%;
+  min-height: 44px;
+  padding: 1.6rem 0 0.2rem;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  position: relative;
+}
+
+.fun-rail button > .mono:first-child {
+  position: absolute;
+  top: 0;
+  left: calc(50% + 12px);
+  color: var(--ink-2);
+}
+
+.fun-rail button > :last-child {
+  color: var(--ink-2);
+}
+
+/* narrower laptops: shorter stations, no coordinates, so the rail clears the corners */
+@media (max-width: 1279px) {
+  .fun-rail li {
+    width: 7.5rem;
+  }
+
+  .fun-rail button > :last-child {
+    display: none;
+  }
+}
+
+.fun-rail button::before {
+  content: "";
+  position: absolute;
+  left: calc(50% - 4px);
+  top: calc(1.05rem - 4px);
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--ink-2);
+  background: #0a1426;
+  transform: rotate(45deg);
+}
+
+.fun-rail button[aria-current="step"]::before {
+  background: var(--orange);
+  border-color: var(--orange);
+}
+
+.fun-rail button[aria-current="step"] strong {
+  color: var(--orange-text);
+}
+
+.fun-rail button:disabled {
+  cursor: default;
+  color: var(--ink-2);
+}
+
+.fun-rail strong {
+  font-weight: 700;
+  font-variation-settings: "wdth" 112;
+}
+
+.fun-anchors {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.fun-label {
+  position: absolute;
+  left: 0;
+  top: 0;
+  white-space: nowrap;
+  translate: -50% -50%;
+  opacity: 0;
+  transition: opacity 0.6s;
+  letter-spacing: 0.14em;
+}
+
+.fun-label[data-on="yes"] {
+  opacity: 1;
+}
+
+.fun-label-bay {
+  font-size: 0.85rem;
+  letter-spacing: 0.4em;
+  color: var(--ink-2);
+}
+
+/* the marker label sits just above the diamond on the pin */
+.fun-label-marker {
+  translate: -50% calc(-100% - 14px);
+  opacity: calc(min(1, max(0, var(--journey) * 4 - 2.4)));
+}
+
+.fun-label-marker[data-on="no"],
+.fun-label-marker[data-on="yes"] {
+  opacity: calc(min(1, max(0, var(--journey) * 4 - 2.6)));
+}
+
+.fun-label-marker[data-on="no"] {
+  opacity: 0;
+}
+
+.fun[data-arrived] .fun-label-marker {
+  opacity: 0;
+}
+
+.fun-panel {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: min(24rem, 30vw);
+  padding: 1.1rem 1.25rem 1rem;
+  border: 1.5px solid var(--ink);
+  background: rgb(10 20 38 / 0.84);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.45s ease-out, visibility 0s 0.45s;
+}
+
+.fun-panel[data-on="yes"] {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.6s ease-out 0.25s;
+}
+
+/* the leader line from the pin to the panel; it draws out from the pin when the panel opens */
+.fun-leader {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 1px;
+  background: var(--orange);
+  transform-origin: 0 0;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.3s ease-in;
+}
+
+.fun-leader[data-on="yes"] {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path 0.5s ease-out;
+}
+
+.fun-panel-sheet {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.fun-panel h3 {
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.fun-panel > p:not(.mono) {
+  margin-top: 0.5rem;
+}
+
+.fun-panel dl {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0.9rem 0 0;
+}
+
+.fun-panel dl div {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr;
+  align-items: baseline;
+}
+
+.fun-panel dt {
+  color: var(--ink-2);
+}
+
+.fun-panel dd {
+  margin: 0;
+}
+
+.fun-panel-project {
+  margin-top: 0.9rem;
+  padding-top: 0.75rem;
   border-top: 1px solid var(--rule);
 }
 
-.fun-route li {
+.fun-panel-coords {
+  margin-top: 0.9rem;
+  color: var(--ink-2);
+}
+
+.fun-foot {
+  position: absolute;
+  inset: auto var(--gutter) 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 1.5rem;
+}
+
+.fun-credit {
   display: grid;
-  grid-template-columns: 11rem 8rem 1fr;
-  gap: 1rem;
-  align-items: baseline;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid var(--rule);
+  gap: 0.15rem;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0.02em;
+  color: var(--ink-2);
+}
+
+.fun-credit span:first-child {
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.fun-foot .btn {
+  flex: none;
+  white-space: nowrap;
+}
+
+.fun-foot .btn:disabled {
+  opacity: 1;
+  color: var(--ink-2);
+  border-color: var(--rule);
+  cursor: default;
+}
+
+.fun-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.9rem;
+}
+
+.fun-loading-line {
+  display: block;
+  width: 16rem;
+  height: 1px;
+  background: var(--rule);
+  position: relative;
+}
+
+.fun-loading-line::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--orange);
+  transform-origin: left;
+  transform: scaleX(var(--share));
+  transition: transform 0.2s;
 }
 
 /* ---------- smaller screens ---------- */

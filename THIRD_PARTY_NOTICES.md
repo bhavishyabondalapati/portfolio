@@ -34,20 +34,34 @@ SOFTWARE.
 
 ## three.js
 
-`three` 0.186.1, MIT licence (Copyright 2010-2026 three.js authors). The floor reflections use its bundled `Reflector` add-on.
+`three` 0.186.1, MIT licence (Copyright 2010-2026 three.js authors).
 
 ## Post-processing libraries
 
 - `postprocessing` 6.39.5 by Raoul van Rüschen (pmndrs), zlib licence: https://github.com/pmndrs/postprocessing/blob/main/LICENSE.md
-- `n8ao` 2.0.1 by N8python: its package.json says ISC and its LICENSE file is CC0 1.0 (public domain dedication): https://github.com/N8python/n8ao/blob/master/LICENSE
+- `n8ao` 2.0.1 by N8python (installed, not currently bundled): its package.json says ISC and its LICENSE file is CC0 1.0 (public domain dedication): https://github.com/N8python/n8ao/blob/master/LICENSE
 
-Both are bundled, unmodified, into the lazily loaded 3D chunk.
+`postprocessing` is bundled, unmodified, into the lazily loaded 3D chunk.
 
 ## Fonts
 
-STIX Two Text, SIL Open Font License 1.1, served from this site by `next/font`.
+Archivo and IBM Plex Mono, SIL Open Font License 1.1, served from this site by `next/font`.
+
+## Elevation data
+
+`public/terrain/*` is made by `scripts/terrain.mjs` from:
+
+Terrain: NOAA NCEI, ETOPO 2022 15 Arc-Second Global Relief Model, doi:10.25921/fd45-gt74.
+
+Downloaded from NOAA's ERDDAP server (dataset `ETOPO_2022_v1_15s`), resampled to every other
+sample and re-encoded as Terrarium PNGs. Licence, as ERDDAP states it: "The data may be used and
+redistributed for free but is not intended for legal use, since it may contain inaccuracies.
+Neither the data Contributor, ERD, NOAA, nor the United States Government, nor any of their
+employees or contractors, makes any warranty, express or implied, including warranties of
+merchantability and fitness for a particular purpose, or assumes any legal liability for the
+accuracy, completeness, or usefulness, of this information." The flyover draws heights 12 times
+taller than they are and says so on screen.
 
 ## Images
 
 - `public/work/*`: the author's own figures and video, copied from the author's own repositories.
-- `public/stills/*`: screenshots of this site's own 3D scene.

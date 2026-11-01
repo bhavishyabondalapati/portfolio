@@ -96,7 +96,7 @@ export const education = [
   {
     school: "SRM Institute of Science and Technology",
     place: "Chennai, India",
-    // Kattankulathur campus
+    campus: "Kattankulathur campus",
     coords: { lat: 12.8231, lon: 80.0442 },
     degree: "Bachelor of Technology in Computer Science and Engineering (AI and ML)",
     gpa: "3.64",
@@ -398,6 +398,20 @@ export const survey = {
     text: "Fly the route from Chennai to Boston over 3D terrain, with each stop opening its section. Interactive 3D, about a minute; best on a recent laptop or desktop.",
   },
   backLabel: "Back to the plain site",
+  // Words inside the 3D flyover.
+  flight: {
+    title: "The survey, flown",
+    subtitle: "Chennai to Boston, in the order it happened",
+    hint: "Scroll, or press the down arrow, to descend",
+    next: "Next stop",
+    previous: "Back to the start",
+    nextLater: "Hyderabad is next to be built",
+    loading: "Loading terrain",
+    preparing: "Preparing the scene",
+    exaggeration: "Vertical exaggeration ×12",
+    credit: "Terrain: NOAA NCEI, ETOPO 2022 15 Arc-Second Global Relief Model, doi:10.25921/fd45-gt74",
+    failed: "The 3D view could not start on this device.",
+  },
   // The map legend on the first screen.
   legend: [
     { key: "Station", value: "Boston, MA" },

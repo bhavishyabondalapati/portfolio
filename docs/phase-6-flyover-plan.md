@@ -115,3 +115,27 @@ Frames F1 to F4 only:
 - **Transit scale jump** (km to thousands of km): handled with separate scenes per leg, a haze
   crossfade and camera distance scaled per zone.
 - **The SRM project isn't written yet:** the Chennai panel shows Education until you send it.
+
+## Slice 1: built (approved as written)
+
+ETOPO 2022, ×12 exaggeration labelled in the corner, and the Chennai stop showing SRM education.
+Screenshots: `docs/screenshots/flyover-slice-*.png`.
+
+- **Data:** `node scripts/terrain.mjs` writes `public/terrain/india.png` (661 × 841 samples, about
+  0.9 km apart, −3,634 m to 2,154 m) and `india.json`.
+- **Engine:** `src/engine/flyover/`. The terrain is one shared vertex grid split into 4 × 4 chunks
+  (one GPU copy, per-chunk culling). There is one material for contours, sweep and haze, a sky that
+  the haze fades into, and a translucent sea at 0 m. The sun has just set in the west-north-west.
+- **Shots:** the camera starts 34 km up over the Bay of Bengal and glides about 7 s (autopilot) down
+  to a hold 10 km up, 29 km from the marker. Scroll, the arrow keys, Home/End and "Next stop" drive it.
+- **At the stop:** the sweep is 1.2 s, then 1.6 s to settle to outlines. Then the leader line draws
+  and the panel opens, docked right.
+- **Not in this slice:** depth of field while holding (listed as the first thing adaptive quality
+  drops anyway). The other stops.
+
+| Target | Result |
+|---|---|
+| 60 fps at 1440 × 900 | 57–60 fps in WebKit (display-capped), 120 fps in Firefox (uncapped), quality never stepped down |
+| 3D chunk under 350 KB gzipped | 211 KB (three.js + postprocessing + engine); fun-mode UI chunk 3 KB; the plain page loads neither |
+| Terrain under 3 MB | 0.70 MB |
+| No freeze over 200 ms | Longest main-thread gap while loading and flying: 59–78 ms (WebKit), 42–78 ms (Firefox). It was 214 ms in Firefox before the warm-up was split into steps. |
