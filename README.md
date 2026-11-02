@@ -1,7 +1,7 @@
 # Bhavishya Bondalapati: The Survey
 
 My portfolio, designed as a survey map. The default page is a plain, fast, accessible site:
-experience, five project "plates" with measured results first, coursework, a gazetteer of
+experience, six project "plates" with measured results first, coursework, a gazetteer of
 smaller builds, and contact. On a capable laptop or desktop there is an optional 3D mode, "Fly the
 survey": a drone flies my route in the order it happened (Chennai, Hyderabad, Ongole, then
 12,937 km to Boston) and its lidar builds a map from real NOAA elevation data, like a SLAM run in

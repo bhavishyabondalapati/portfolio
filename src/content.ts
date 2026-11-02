@@ -204,6 +204,38 @@ export const featured: FeaturedProject[] = [
     },
   },
   {
+    slug: "lexintake",
+    name: "LexIntake",
+    field: "LLM extraction · backend",
+    figure: { value: "1,768 / 1,782", label: "fields extracted exactly right on 248 held-out synthetic documents, with every cited quote verified in the text" },
+    oneLine:
+      "Intake and triage for the legal documents a private equity firm receives: parse, classify, extract key terms with verified citations, check NDAs against the playbook, and send anything doubtful to a person.",
+    problem:
+      "A mid-market private equity legal team receives thousands of documents a year, and today someone reads every one, decides what it is, checks it against the firm's standards and files it by hand, although most are routine.",
+    built: [
+      "Docling parsing with an OCR fallback, keeping each text block's page and bounding box.",
+      "Classification with Haiku and NDA field extraction with Sonnet, where every value must come with a quote that is found in the parsed text, or the document goes to review.",
+      "An NDA playbook in YAML that each document is checked against (pass, deviation or unknown, with evidence), and a Next.js review page that highlights the cited quote.",
+      "FastAPI, Celery and Redis background jobs, Postgres with an audit log and cost tracking, Docker Compose, and GitHub Actions with a full stack smoke test.",
+    ],
+    result: [
+      "1,768 of 1,782 fields exactly right (99%) on the 248-document test half of a synthetic set, and all 1,495 cited quotes found in the parsed text; confidence thresholds were set on a separate calibration half.",
+      "On 66 real NDAs from ContractNLI it failed safe: none was auto-approved, and the run exposed a schema flaw the synthetic data could not show (no clause versus a clause with no deadline).",
+      "The review queue caught 94 of the 96 documents that needed a person; 94 of the 111 it flagged had a real problem.",
+      "$0.0043 per document on average through the Anthropic Batch API ($2.04 for all 495 documents).",
+      "Scanned pages are harder: 279 of 292 fields right (96%), with the 13 misses traced to damaged OCR text or empty answers.",
+    ],
+    stack: ["Python", "FastAPI", "Celery", "Redis", "Postgres", "Docling", "Anthropic API", "Next.js", "Docker Compose"],
+    links: [{ label: "Code on GitHub", href: `${GH}/lexintake` }],
+    media: [
+      {
+        src: "/work/lexintake-review.webp",
+        alt: "LexIntake's review page for a synthetic NDA: the document on the left with the term clause highlighted, and on the right the playbook checks (one deviation, five passes) and the extracted fields with the cited quote",
+        caption: "Review page, synthetic NDA",
+      },
+    ],
+  },
+  {
     slug: "reporag",
     name: "RepoRAG",
     field: "Retrieval-augmented generation",

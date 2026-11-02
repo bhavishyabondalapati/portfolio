@@ -57,6 +57,12 @@ behind the `NEXT_PUBLIC_FLYOVER` flag (off by default), so the plain site can sh
    earlier SLAM rule, orange only for the live scan and the trajectory, may need revisiting
    together with it.
 
+## Content change since this was written
+
+- LexIntake is now plate 2.3, so there are six plates. The flyover still has five plate waypoints
+  (journey 5 to 9, `src/engine/flyover/route.ts`), so it shows only the first five. Add a sixth
+  waypoint, then move the overview and contact stops (and `LAST`) one later.
+
 ## Still open from before
 
 - The SRM ROS/SLAM project details: robot or simulator, SLAM method, sensors, what was built, any

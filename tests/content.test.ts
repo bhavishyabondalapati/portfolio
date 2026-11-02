@@ -15,7 +15,7 @@ test("no phone number anywhere", () => {
 });
 
 test("every featured project has problem, built, result, stack and a link", () => {
-  assert.equal(content.featured.length, 5);
+  assert.equal(content.featured.length, 6);
   for (const p of content.featured) {
     assert.ok(p.problem.length > 20, p.slug);
     assert.ok(p.built.length > 0, p.slug);
@@ -43,10 +43,10 @@ test("Kambaz points at the individual build, not the team fork", () => {
   assert.equal(hrefs.includes("eight-theta"), false);
 });
 
-test("plain-site project order: the five plates, then coursework, then earlier work", () => {
+test("plain-site project order: the six plates, then coursework, then earlier work", () => {
   assert.deepEqual(
     content.featured.map((p) => p.slug),
-    ["aerial-change-intelligence", "llm-gateway", "reporag", "robot-arm-sim", "excel-copilot"]
+    ["aerial-change-intelligence", "llm-gateway", "lexintake", "reporag", "robot-arm-sim", "excel-copilot"]
   );
   assert.deepEqual(content.coursework.map((p) => p.slug), ["kambaz", "calendar"]);
   assert.equal(content.coursework[0].course, "CS 5610 Web Development");
@@ -79,9 +79,9 @@ test("the house and the kitten are gone from the content", () => {
   assert.equal(/house cat|kitten says|sword/i.test(allText), false);
 });
 
-test("no links to private repos (bioreactor, LexIntake) and the team Kambaz links are present", () => {
+test("no links to private repos (bioreactor) and the team Kambaz links are present", () => {
   const all = JSON.stringify(content);
-  assert.ok(!/bioreactor|lexintake/i.test(all));
+  assert.ok(!/bioreactor/i.test(all));
   const kambaz = content.coursework.find((c) => c.slug === "kambaz")!;
   assert.ok(kambaz.links.some((l) => l.href.endsWith("/kambaz-lms-web")));
   assert.ok(kambaz.links.some((l) => l.href.endsWith("/kambaz-lms-api")));
