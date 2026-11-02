@@ -736,8 +736,10 @@ h1 span {
   border-bottom: 1px solid var(--rule);
 }
 
+/* the unit is sentence case, so it drops the wide tracking used for the uppercase caption */
 .chart figcaption span {
   text-transform: none;
+  letter-spacing: 0.01em;
 }
 
 .chart-bars dl {
