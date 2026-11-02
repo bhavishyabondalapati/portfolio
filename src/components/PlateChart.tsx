@@ -17,7 +17,10 @@ export function PlateChart({ chart }: { chart: Chart }) {
               <dd>
                 {/* linear scale on purpose: the fast bar is meant to look almost empty */}
                 <span className={`bar-fill${i === 0 ? " is-accent" : ""}`} style={{ width: `max(3px, ${(r.value / max) * 100}%)` }} />
-                <span className="bar-value">{r.value} ms</span>
+                <span className="bar-value">
+                  {r.value}
+                  {chart.suffix ? ` ${chart.suffix}` : ""}
+                </span>
               </dd>
             </div>
           ))}

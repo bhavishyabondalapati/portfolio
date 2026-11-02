@@ -23,7 +23,7 @@ export type Experience = {
 
 /** A small figure drawn in code from a project's own numbers, for plates without a picture. */
 export type PlateChart =
-  | { kind: "bars"; unit: string; caption: string; rows: { label: string; value: number }[] }
+  | { kind: "bars"; unit: string; caption: string; rows: { label: string; value: number }[]; /** printed after each value */ suffix?: string }
   | { kind: "steps"; caption: string; steps: string[] };
 
 export type FeaturedProject = {
@@ -195,10 +195,44 @@ export const featured: FeaturedProject[] = [
     chart: {
       kind: "bars",
       unit: "ms, p50 under load",
+      suffix: "ms",
       caption: "Cache hit against cache miss",
       rows: [
         { label: "Cache hit", value: 1.6 },
         { label: "Cache miss", value: 394 },
+      ],
+    },
+  },
+  {
+    slug: "reporag",
+    name: "RepoRAG",
+    field: "Retrieval-augmented generation",
+    figure: { value: "0.96", label: "Recall@5 on itsdangerous; 0.722 on a held-out set written before tuning" },
+    oneLine: "Ask questions about any public GitHub repo and get answers that cite the exact files and lines.",
+    problem:
+      "An answer about a codebase is only useful if you can check it, and a RAG system is only trustworthy if its retrieval is measured rather than assumed.",
+    built: [
+      "Code-aware chunking with tree-sitter at function and class boundaries, so every chunk keeps its file path, symbol and line range.",
+      "Two retrievers in parallel: BM25 for exact identifiers (with camelCase and snake_case splitting) and bge-small embeddings in FAISS for meaning, merged with Reciprocal Rank Fusion, then a cross-encoder reranker.",
+      "Grounded answers from Gemini that must cite numbered excerpts, with three guards that answer \"not enough information in this repo\" instead of guessing.",
+      "An eval harness with 32 hand-labelled development questions and a separate 20-question held-out set over two pinned repos, plus a FastAPI backend, a Next.js UI and Docker Compose.",
+    ],
+    result: [
+      "Recall@5 of 0.96 on itsdangerous with hybrid search (0.82 with keyword search alone), and 0.722 on a held-out set written before any tuning.",
+      "An off-the-shelf reranker made code search worse: MRR@10 fell from 0.446 to 0.385, a domain mismatch the evals caught.",
+      "On the harder ky repo every mode stays between 0.21 and 0.36 Recall@5 (development set): its long test files crowd out the short source functions that answer the question.",
+      "73 offline tests run in about a second, with CI on every push. Answer faithfulness and abstention are not measured yet.",
+    ],
+    stack: ["Python", "FastAPI", "tree-sitter", "FAISS", "sentence-transformers", "Gemini", "Next.js", "Docker", "pytest"],
+    links: [{ label: "Code on GitHub", href: `${GH}/RepoRAG` }],
+    media: [],
+    chart: {
+      kind: "bars",
+      unit: "Recall@5, hybrid search, development set",
+      caption: "itsdangerous against ky",
+      rows: [
+        { label: "itsdangerous", value: 0.964 },
+        { label: "ky", value: 0.214 },
       ],
     },
   },
@@ -273,6 +307,8 @@ export const coursework: SecondaryProject[] = [
       { label: "Live site", href: "https://kambaz-next-js-navy-sigma.vercel.app" },
       { label: "Frontend code", href: `${GH}/kambaz-next-js` },
       { label: "API code", href: `${GH}/kambaz-node-server-app` },
+      { label: "Team final: frontend", href: `${GH}/kambaz-lms-web` },
+      { label: "Team final: API", href: `${GH}/kambaz-lms-api` },
     ],
   },
   {
@@ -316,6 +352,12 @@ export const otherWork: ListedProject[] = [
     href: `${GH}/facial-expression-recognition`,
   },
   {
+    name: "Racket IMU motion inference",
+    oneLine: "Stroke type from one racket sensor at 0.798 macro-F1 on unseen players; the models read racket angle, not the swing.",
+    stack: ["scikit-learn", "PyTorch", "pandas"],
+    href: `${GH}/racket-imu-motion-inference`,
+  },
+  {
     name: "Robot navigation lab",
     oneLine: "A* and RRT planning with a 400-particle filter and simulated lidar, live in the browser.",
     stack: ["FastAPI", "NumPy", "React"],
@@ -350,12 +392,6 @@ export const otherWork: ListedProject[] = [
     oneLine: "A REST API over simulated equipment events with a Gemini summary whose cited event IDs are checked in code.",
     stack: ["TypeScript", "Express", "SQLite"],
     href: `${GH}/event-timeline-assistant`,
-  },
-  {
-    name: "Bioreactor batch monitor",
-    oneLine: "SPC control limits and PCA Hotelling's T² on simulated bioreactor batches, scored against injected faults.",
-    stack: ["Python", "SQLite", "scikit-learn"],
-    href: `${GH}/bioreactor-batch-monitor`,
   },
   {
     name: "Portfolio analyzer",
