@@ -174,3 +174,38 @@ Screenshots: `docs/screenshots/flyover-slam-*.png`.
 | 3D chunk under 350 KB gzipped | 215 KB; fun-mode UI chunk 7 KB (includes the inset coastline); the plain page loads neither |
 | Terrain under 3 MB | 0.70 MB (the inset adds 8 KB of path) |
 | No freeze over 200 ms | Longest main-thread gap: 47–60 ms (WebKit), 28–75 ms (Firefox) |
+
+## The full flight (built overnight, 2026-11-02)
+
+All the stops, in timeline order:
+
+| Journey | Stop | Panel |
+|---|---|---|
+| 0 | Over the Bay of Bengal | Title |
+| 1 | Chennai, Tamil Nadu, India | SRM education (the SRM project slot stays empty until its details arrive) |
+| 2 | Hyderabad, Telangana, India | Mouri Tech |
+| 3 | Ongole, Andhra Pradesh, India | JC Biotech |
+| 3.3 to 3.75 | Great circle over a dotted globe, with a 12,937 km counter | (none) |
+| 4 | Boston, Massachusetts, USA | Northeastern; the loop closes first |
+| 5 to 9 | Five waypoints along Boston Harbor | Plates 2.1 to 2.5, key result first |
+| 10 | Overview of the Boston map | Coursework and earlier work |
+| 11 | Contact | Email, links, Back to the plain site |
+
+- **Engine:** `route.ts` holds the flight plan and framings, `leg.ts` a mapped leg, `globe.ts` the
+  transit, and `createFlyover.ts` the journey, scans, locks, closure and camera.
+- **Data:** `node scripts/terrain.mjs boston` and `node scripts/terrain.mjs world` add the Boston
+  tile (15", 72 KB) and the world grid (0.5°, 462 KB). `node scripts/inset.mjs world` traces the
+  world inset.
+- **Loop closure:** the Boston map (points, trajectory, poses, drone) is drawn drifted by 2.6° and
+  about 2 km while the drone flies in. After the Northeastern lock, it eases back into alignment over
+  1.1 s while the trajectory brightens, then the panel opens.
+- **Leg switches:** a navy veil hides the switch between India, the globe and Boston.
+- **Plate waypoints:** Fort Point, Castle Island, Columbia Point, Squantum and Merrymount. They are
+  map positions for the plates, not claims about where the work happened.
+
+| Target | Result (whole flight, 1440 × 900) |
+|---|---|
+| 60 fps | 60 fps at every stop in WebKit, 120 in Firefox; quality never stepped down |
+| 3D under 350 KB gzipped | 219 KB engine chunk + 15 KB fun-mode UI (with both insets) |
+| Terrain under 3 MB | 1.2 MB (India 0.71, world 0.47, Boston 0.07) |
+| No freeze over 200 ms | Longest main-thread gap 57–84 ms (WebKit), 79 ms (Firefox), across load and the whole flight |

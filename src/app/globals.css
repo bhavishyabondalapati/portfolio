@@ -1265,7 +1265,8 @@ h1 span {
 }
 
 .fun-reticle[data-state="detected"][data-on="yes"],
-.fun-reticle[data-state="locked"][data-on="yes"] {
+.fun-reticle[data-state="locked"][data-on="yes"],
+.fun-reticle[data-state="closed"][data-on="yes"] {
   opacity: 1;
 }
 
@@ -1356,6 +1357,125 @@ h1 span {
 .fun-leader[data-on="yes"] {
   clip-path: inset(0 0 0 0);
   transition: clip-path 0.5s ease-out;
+}
+
+/* the panel can hold a long stop (experience); it scrolls inside rather than overflowing */
+.fun-panel {
+  max-height: calc(100vh - 360px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.fun-panel-points,
+.fun-panel-list {
+  margin: 0.8rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+}
+
+.fun-panel-list {
+  list-style: none;
+  padding: 0;
+}
+
+.fun-panel-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.fun-panel-list .mono {
+  color: var(--ink-2);
+  text-align: right;
+}
+
+.fun-panel-figure {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.6rem;
+}
+
+.fun-panel-figure strong {
+  font-weight: 800;
+  font-variation-settings: "wdth" 112;
+  font-size: 2.6rem;
+  line-height: 1;
+}
+
+.fun-panel-figure span {
+  color: var(--ink-2);
+}
+
+.fun-panel-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  margin-top: 0.9rem;
+}
+
+.fun-panel-links a,
+.fun-panel-email a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--ink);
+}
+
+.fun-panel-email {
+  margin-top: 0.6rem;
+  font-weight: 700;
+  font-size: clamp(1rem, 1.45vw, 1.25rem);
+}
+
+.fun-panel-sheet b {
+  white-space: nowrap;
+}
+
+.fun-panel .btn {
+  margin-top: 0.8rem;
+}
+
+.fun-panel-note {
+  margin-top: 0.8rem;
+  color: var(--ink-2);
+  font-size: 0.9rem;
+}
+
+.fun-leader[data-show="no"] {
+  opacity: 0;
+}
+
+/* a navy veil hides the switch between the India map, the globe and the Boston map */
+.fun-veil {
+  position: absolute;
+  inset: 0;
+  background: #0a1426;
+  opacity: var(--veil, 0);
+  pointer-events: none;
+}
+
+.fun-transit {
+  position: absolute;
+  left: 50%;
+  bottom: 7.5rem;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.5s;
+  text-shadow: 0 0 12px #0a1426, 0 0 3px #0a1426;
+}
+
+.fun[data-phase="transit"] .fun-transit {
+  opacity: 1;
+}
+
+.fun-transit b {
+  font-weight: 600;
 }
 
 .fun-panel-sheet {

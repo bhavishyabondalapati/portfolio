@@ -49,46 +49,55 @@ export function metresAt(tile: Tile, x: number, z: number) {
 export const heightAt = (tile: Tile, x: number, z: number) => (metresAt(tile, x, z) / 1000) * EXAGGERATION;
 
 const CELL = 1; // km
-const PER_SIDE = 4; // 4 x 4 returns per square km, about 250 m apart
+const pause = () => new Promise((r) => setTimeout(r, 0));
 
 /**
- * The lidar returns along a flight path: 16 per square km on a regular 250 m lattice, everywhere the
- * drone's scan ever reaches, on land only (water sends no returns). Each point carries the distance flown when the
- * scan first reached it (aReveal), a hillshade value (aShade) and a random seed for its scatter.
+ * The lidar returns along a flight path: `perSide` x `perSide` per square km on a regular
+ * lattice, everywhere the drone's scan ever reaches, on land only (water sends no returns). Each
+ * point carries the index of the first path sample whose scan reached it (aReveal), a hillshade
+ * value (aShade) and a random seed for its scatter. Built in slices with pauses between them, so
+ * a long flight never blocks the page for long.
  */
-export function buildCloud(tile: Tile, path: { x: number; z: number }[], step: number, range: number, material: THREE.Material) {
+export async function buildCloud(tile: Tile, path: { x: number; z: number }[], range: number, perSide: number, material: THREE.Material) {
   const { proj } = tile;
   const grid = { x0: -proj.size.x / 2, z0: -proj.size.z / 2, cols: Math.floor(proj.size.x / CELL), rows: Math.floor(proj.size.z / CELL), cell: CELL };
-  const reveal = revealGrid(path, step, range, grid);
+  const reveal = revealGrid(path, 1, range, grid);
+  let cells = 0;
+  for (let k = 0; k < reveal.length; k++) if (reveal[k] !== Infinity) cells++;
+  const max = cells * perSide * perSide;
+  const pos = new Float32Array(max * 3), rev = new Float32Array(max), shade = new Float32Array(max), seed = new Float32Array(max);
 
   const rand = mulberry32(42);
-  const pos: number[] = [], rev: number[] = [], shade: number[] = [], seed: number[] = [];
   const light = new THREE.Vector3(-0.6, 0.75, -0.3).normalize(); // from the north-west, as on printed relief
+  const n = new THREE.Vector3();
   const d = 0.25;
+  let count = 0, done = 0;
   for (let k = 0; k < reveal.length; k++) {
     if (reveal[k] === Infinity) continue;
     const c = k % grid.cols, r = Math.floor(k / grid.cols);
-    for (let i = 0; i < PER_SIDE * PER_SIDE; i++) {
+    for (let i = 0; i < perSide * perSide; i++) {
       // a regular lattice: the clean map the scattered returns settle into
-      const x = grid.x0 + (c + ((i % PER_SIDE) + 0.5) / PER_SIDE) * CELL;
-      const z = grid.z0 + (r + (Math.floor(i / PER_SIDE) + 0.5) / PER_SIDE) * CELL;
-      const m = metresAt(tile, x, z);
-      if (m <= 0) continue;
-      const y = heightAt(tile, x, z);
+      const x = grid.x0 + (c + ((i % perSide) + 0.5) / perSide) * CELL;
+      const z = grid.z0 + (r + (Math.floor(i / perSide) + 0.5) / perSide) * CELL;
+      if (metresAt(tile, x, z) <= 0) continue;
       const gx = (heightAt(tile, x + d, z) - heightAt(tile, x - d, z)) / (2 * d);
       const gz = (heightAt(tile, x, z + d) - heightAt(tile, x, z - d)) / (2 * d);
-      const n = new THREE.Vector3(-gx, 1, -gz).normalize();
-      pos.push(x, y, z);
-      rev.push(reveal[k]);
-      shade.push(Math.max(n.dot(light), 0));
-      seed.push(rand());
+      n.set(-gx, 1, -gz).normalize();
+      pos[count * 3] = x;
+      pos[count * 3 + 1] = heightAt(tile, x, z);
+      pos[count * 3 + 2] = z;
+      rev[count] = reveal[k];
+      shade[count] = Math.max(n.dot(light), 0);
+      seed[count] = rand();
+      count++;
     }
+    if (++done % 4000 === 0) await pause();
   }
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
-  geo.setAttribute("aReveal", new THREE.Float32BufferAttribute(rev, 1));
-  geo.setAttribute("aShade", new THREE.Float32BufferAttribute(shade, 1));
-  geo.setAttribute("aSeed", new THREE.Float32BufferAttribute(seed, 1));
+  geo.setAttribute("position", new THREE.BufferAttribute(pos.subarray(0, count * 3), 3));
+  geo.setAttribute("aReveal", new THREE.BufferAttribute(rev.subarray(0, count), 1));
+  geo.setAttribute("aShade", new THREE.BufferAttribute(shade.subarray(0, count), 1));
+  geo.setAttribute("aSeed", new THREE.BufferAttribute(seed.subarray(0, count), 1));
   const points = new THREE.Points(geo, material);
   points.frustumCulled = false; // one cloud; the vertex shader hides what isn't scanned yet
   return points;

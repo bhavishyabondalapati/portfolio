@@ -1,11 +1,17 @@
 // Traces coastlines for the flyover's corner inset map from the same NOAA ETOPO 2022 data as the
 // terrain (doi:10.25921/fd45-gt74). It draws coasts only, no borders: a physical locator map.
-// Writes src/lib/inset-india.json: an SVG path in a 0..W x 0..H box plus the projection bounds.
-// Run once: node scripts/inset.mjs   (no dependencies; needs network access)
+// Writes src/lib/inset-<name>.json: an SVG path in a 0..W x 0..H box plus the projection bounds.
+// Run once: node scripts/inset.mjs india && node scripts/inset.mjs world   (needs network access)
 import { writeFileSync } from "node:fs";
 
 const ERDDAP = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/ETOPO_2022_v1_15s.esriAscii";
-const BOX = { south: 5.5, north: 26, west: 67, east: 93, stride: 18 }; // 4.5 arc-minutes, about 8 km
+const BOXES = {
+  india: { south: 5.5, north: 26, west: 67, east: 93, stride: 18, min: 6 }, // 4.5 arc-minutes, about 8 km
+  // the North Atlantic and both ends of the flight, 0.5 degrees
+  world: { south: 0, north: 66, west: -100, east: 100, stride: 120, min: 10 },
+};
+const NAME = process.argv[2] ?? "india";
+const BOX = BOXES[NAME];
 const W = 200; // viewBox width; height follows the projection
 
 const q = `z[(${BOX.south}):${BOX.stride}:(${BOX.north})][(${BOX.west}):${BOX.stride}:(${BOX.east})]`;
@@ -75,7 +81,7 @@ for (let i = 0; i < segs.length; i++) {
   polylines.push(line);
 }
 const length = (l) => l.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - l[i - 1][0], p[1] - l[i - 1][1]) : 0), 0);
-const kept = polylines.filter((l) => length(l) > 6);
+const kept = polylines.filter((l) => length(l) > BOX.min);
 const d = kept
   .map((l) => {
     const thin = l.filter((_, i) => i % 2 === 0 || i === l.length - 1);
@@ -84,5 +90,5 @@ const d = kept
   .join("");
 
 const out = { width: W, height: H, north, south, west, east, d, source: "NOAA NCEI ETOPO 2022, doi:10.25921/fd45-gt74" };
-writeFileSync(new URL("../src/lib/inset-india.json", import.meta.url), JSON.stringify(out) + "\n");
-console.log(`inset: ${W}x${H}, ${kept.length} coastlines, ${(d.length / 1024).toFixed(1)} KB of path`);
+writeFileSync(new URL(`../src/lib/inset-${NAME}.json`, import.meta.url), JSON.stringify(out) + "\n");
+console.log(`inset ${NAME}: ${W}x${H}, ${kept.length} coastlines, ${(d.length / 1024).toFixed(1)} KB of path`);

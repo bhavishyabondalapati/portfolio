@@ -33,10 +33,10 @@ ${SCAN}
 attribute float aReveal;
 attribute float aShade;
 attribute float aSeed;
-// when each stretch of the flight was scanned (seconds since start), 1e9 if not yet
+// when each path sample was first scanned (seconds since start), 1e9 if not yet; the samples
+// are laid out in rows of 1024 texels, so long flights fit any WebGL2 texture size limit
 uniform sampler2D uTimes;
-uniform float uSteps;
-uniform float uStep;
+uniform float uRows;
 uniform float uTime;
 uniform float uExag;
 uniform float uPx;
@@ -45,7 +45,8 @@ varying vec3 vColor;
 varying float vAlpha;
 
 void main() {
-  float scanned = texture2D(uTimes, vec2((aReveal / uStep + 0.5) / uSteps, 0.5)).r;
+  float col = mod(aReveal, 1024.0), row = floor(aReveal / 1024.0);
+  float scanned = texture2D(uTimes, vec2((col + 0.5) / 1024.0, (row + 0.5) / uRows)).r;
   float age = uTime - scanned;
   if (age < 0.0) {
     gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
@@ -65,13 +66,13 @@ void main() {
   float band = 1.0 - smoothstep(0.08, 0.18, abs(fract(h / 20.0 + 0.5) - 0.5));
   float coast = 1.0 - smoothstep(3.0, 12.0, h);
   float relief = smoothstep(0.0, 160.0, h);
-  float bright = 0.16 + 0.3 * aShade + 0.45 * relief + (0.5 * band + 0.6 * coast) * settle;
+  float bright = 0.22 + 0.3 * aShade + 0.45 * relief + (0.5 * band + 0.6 * coast) * settle;
   vColor = mix(uWhite * bright, uOrange * 1.7, live);
 
   vec4 mv = modelViewMatrix * vec4(p, 1.0);
   float dist = -mv.z;
   vAlpha = fade(p) * (0.5 + 0.5 * settle);
-  gl_PointSize = clamp(34.0 / dist, 1.0, 3.4) * uPx * (1.0 + 0.5 * live);
+  gl_PointSize = clamp(46.0 / dist, 1.15, 3.4) * uPx * (1.0 + 0.5 * live);
   gl_Position = projectionMatrix * mv;
 }
 `;

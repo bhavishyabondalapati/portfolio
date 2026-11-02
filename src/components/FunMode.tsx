@@ -1,31 +1,44 @@
 "use client";
-// Fun mode: the 3D flyover, told as a SLAM run. A drone flies the route and its lidar builds the
-// map live; each stop is a landmark the system detects and locks onto, then that section's panel
-// opens. This full-screen layer holds the canvas, the route rail, the corner inset map, the
-// landmark reticle and panel, and a "Back to the plain site" button that is always visible and
-// takes keyboard focus first. The scene itself lives in src/engine/flyover/.
-//
-// Slice 1: off the Coromandel coast to the first stop, SRM in Kattankulathur.
+// Fun mode: the 3D flyover, told as a SLAM run. A drone flies the route in the order it happened
+// and its lidar builds the map live; each stop is a landmark the system detects and locks onto,
+// then that section's panel opens. Arriving in Boston closes the loop. This full-screen layer
+// holds the canvas, the route rail, the corner inset map, the landmark reticle and panel, and a
+// "Back to the plain site" button that is always visible and takes keyboard focus first.
+// The scene itself lives in src/engine/flyover/.
 import { useEffect, useRef, useState } from "react";
-import { education, route, srmProject, survey } from "@/content";
+import { contact, coursework, earlierWork, education, experience, featured, route, srmProject, survey } from "@/content";
 import type { Flyover, FrameState } from "@/engine/flyover/createFlyover";
-import { stopTarget } from "@/lib/flyover";
+import { LAST, STOPS } from "@/engine/flyover/route";
+import { alongGreatCircle, stopTarget } from "@/lib/flyover";
 import { placeLine } from "@/lib/geo";
-import inset from "@/lib/inset-india.json";
+import insetIndia from "@/lib/inset-india.json";
+import insetWorld from "@/lib/inset-world.json";
 
 type Stage = "loading" | "preparing" | "ready" | "failed";
+type Inset = typeof insetIndia;
 
-const STOP = route[0];
-const SCHOOL = education.find((e) => e.coords.lat === STOP.coords.lat)!;
-const LAST = 1; // the last journey position built so far
-const LABELS = [{ id: "bay", text: "Bay of Bengal", coords: { lat: 12.95, lon: 80.62 }, from: 0, to: 1 }];
-const INDIA = route.filter((r) => r.country === "India");
+const LABELS = [
+  { id: "bay", text: "Bay of Bengal", coords: { lat: 12.95, lon: 80.62 }, leg: "india" as const, from: 0, to: 1 },
+  { id: "deccan", text: "Deccan Plateau", coords: { lat: 16.2, lon: 78.4 }, leg: "india" as const, from: 1.4, to: 2.1 },
+  { id: "mass-bay", text: "Massachusetts Bay", coords: { lat: 42.36, lon: -70.72 }, leg: "boston" as const, from: 3.75, to: 4 },
+];
 
-/** Latitude and longitude to the inset's SVG box. */
-const toInset = (c: { lat: number; lon: number }) => ({
-  x: ((c.lon - inset.west) / (inset.east - inset.west)) * inset.width,
-  y: ((inset.north - c.lat) / (inset.north - inset.south)) * inset.height,
+const SCHOOL = (lat: number) => education.find((e) => e.coords.lat === lat)!;
+const JOB = (lat: number) => experience.find((e) => e.coords.lat === lat)!;
+/** Each stop's name in the reticle, and the line under it. */
+const reticleText = (k: number): [string, string] => {
+  if (k >= 1 && k <= 4) return [`Landmark 0${k}`, placeLine(route[k - 1])];
+  if (k >= 5 && k <= 9) return [`Waypoint 2.${k - 4}`, featured[k - 5].name];
+  return ["", ""];
+};
+/** The station on the rail (0 to 3) for a journey position. */
+const station = (j: number) => (j < 1.5 ? 0 : j < 2.5 ? 1 : j < 3.5 ? 2 : 3);
+
+const toInset = (box: Inset, c: { lat: number; lon: number }) => ({
+  x: ((c.lon - box.west) / (box.east - box.west)) * box.width,
+  y: ((box.north - c.lat) / (box.north - box.south)) * box.height,
 });
+const ARC = Array.from({ length: 41 }, (_, i) => alongGreatCircle(route[2].coords, route[3].coords, i / 40));
 
 export function FunMode({ onExit }: { onExit: () => void }) {
   const back = useRef<HTMLButtonElement>(null);
@@ -35,12 +48,17 @@ export function FunMode({ onExit }: { onExit: () => void }) {
   const leader = useRef<HTMLSpanElement>(null);
   const reticle = useRef<HTMLDivElement>(null);
   const droneDot = useRef<SVGCircleElement>(null);
+  const km = useRef<HTMLSpanElement>(null);
   const engine = useRef<Flyover | null>(null);
   const [stage, setStage] = useState<Stage>("loading");
   const [bytes, setBytes] = useState({ loaded: 0, total: 0 });
-  const [arrived, setArrived] = useState(false);
-  const [atStop, setAtStop] = useState(false);
-  const [lockState, setLockState] = useState<"none" | "detected" | "locked">("none");
+  const [open, setOpen] = useState(0); // the stop whose panel is open, or 0
+  const [shown, setShown] = useState(1); // the stop whose content the panel holds (kept while it fades out)
+  const [rail, setRail] = useState(0);
+  const [phase, setPhase] = useState<FrameState["phase"]>("india");
+  const [near, setNear] = useState(0);
+  const [lockState, setLockState] = useState<"none" | "detected" | "locked" | "closed">("none");
+  const [atEnd, setAtEnd] = useState(false);
 
   // Esc closes; the page behind stops scrolling
   useEffect(() => {
@@ -68,8 +86,17 @@ export function FunMode({ onExit }: { onExit: () => void }) {
     const at = (el: HTMLElement, x: number, y: number) => (el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`);
 
     const onFrame = (s: FrameState) => {
-      root.current?.style.setProperty("--journey", s.journey.toFixed(3));
-      setAtStop(s.journey > 0.98);
+      const r = root.current;
+      if (!r) return;
+      r.style.setProperty("--journey", Math.min(s.journey, 1).toFixed(3));
+      r.style.setProperty("--veil", s.veil.toFixed(3));
+      setRail(station(s.journey));
+      setPhase(s.phase);
+      setNear(s.stop);
+      setAtEnd(s.journey > LAST - 0.02);
+      setLockState(s.stop === 4 && s.closure >= 1 ? "closed" : s.lock >= 1 ? "locked" : s.detected ? "detected" : "none");
+      if (km.current) km.current.textContent = Math.round(s.transitKm).toLocaleString("en-US");
+
       for (const a of s.anchors.slice(1)) {
         const el = labelEls.get(a.id);
         if (!el) continue;
@@ -78,29 +105,33 @@ export function FunMode({ onExit }: { onExit: () => void }) {
       }
       // the reticle sits on the landmark and closes in as the lock completes
       const m = s.anchors[0];
-      const r = reticle.current;
-      if (r) {
-        at(r, m.x, m.y);
-        r.style.setProperty("--lock", s.lock.toFixed(3));
-        r.dataset.on = m.visible ? "yes" : "no";
+      const ret = reticle.current;
+      if (ret) {
+        at(ret, m.x, m.y);
+        ret.style.setProperty("--lock", s.lock.toFixed(3));
+        ret.dataset.on = m.visible ? "yes" : "no";
       }
-      setLockState(s.lock >= 1 ? "locked" : s.detected ? "detected" : "none");
 
-      // the panel is docked on the left, over the sea; a leader line runs from the landmark to it
+      // the panel docks on the side the stop's framing leaves free; a leader line runs to it
       const p = panel.current;
       const lead = leader.current;
+      const side = STOPS[s.stop]?.panel ?? p?.dataset.side ?? "right";
       if (p && lead) {
-        const x = Math.min(gutter, m.x - 140 - p.offsetWidth);
-        const y = Math.min(Math.max(m.y - 120, 130), window.innerHeight - p.offsetHeight - 240);
+        p.dataset.side = side;
+        const w = p.offsetWidth, h = p.offsetHeight;
+        const x = side === "left" ? Math.min(gutter, m.x - 140 - w) : Math.max(m.x + 140, window.innerWidth - gutter - w);
+        const y = m.visible ? Math.min(Math.max(m.y - 120, 130), window.innerHeight - h - 230) : Math.max((window.innerHeight - h) / 2 - 40, 130);
         at(p, x, y);
-        const dx = x + p.offsetWidth - m.x, dy = y + 26 - m.y;
+        const ex = side === "left" ? x + w : x;
+        const dx = ex - m.x, dy = y + 26 - m.y;
         lead.style.width = `${Math.hypot(dx, dy).toFixed(1)}px`;
         lead.style.transform = `translate3d(${m.x.toFixed(1)}px, ${m.y.toFixed(1)}px, 0) rotate(${Math.atan2(dy, dx)}rad)`;
+        lead.dataset.show = m.visible ? "yes" : "no";
       }
 
       const d = droneDot.current;
       if (d) {
-        const q = toInset(s.drone);
+        const q = toInset(s.phase === "india" ? insetIndia : insetWorld, s.drone);
         d.setAttribute("cx", q.x.toFixed(1));
         d.setAttribute("cy", q.y.toFixed(1));
       }
@@ -109,11 +140,14 @@ export function FunMode({ onExit }: { onExit: () => void }) {
     import("@/engine/flyover/createFlyover")
       .then(({ createFlyover }) =>
         createFlyover(canvas.current!, {
-          landmark: STOP.coords,
           labels: LABELS,
           onBytes: (loaded, total) => setBytes({ loaded, total }),
           onStage: (s) => !disposed && setStage(s),
-          onArrive: (a) => !disposed && setArrived(a),
+          onArrive: (k) => {
+            if (disposed) return;
+            setOpen(k);
+            if (k) setShown(k);
+          },
           onFrame,
         }),
       )
@@ -138,6 +172,7 @@ export function FunMode({ onExit }: { onExit: () => void }) {
   useEffect(() => {
     const el = root.current!;
     const onWheel = (e: WheelEvent) => {
+      if ((e.target as HTMLElement).closest(".fun-panel")) return; // let a long panel scroll
       e.preventDefault();
       const px = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
       engine.current?.nudge(px * 0.00045);
@@ -176,11 +211,15 @@ export function FunMode({ onExit }: { onExit: () => void }) {
   const f = survey.flight;
   const mb = (n: number) => (n / 1e6).toFixed(1);
   const share = bytes.total ? bytes.loaded / bytes.total : 0;
-  const stop = toInset(STOP.coords);
+  const inset = phase === "india" ? insetIndia : insetWorld;
+  const insetStops = phase === "india" ? route.slice(0, 3) : [route[2], route[3]];
+  const [retTitle, retLine] = reticleText(near);
+  const retState = lockState === "closed" ? "loop closed · map aligned" : lockState === "locked" ? "locked" : "detected";
 
   return (
-    <div ref={root} className="fun" data-stage={stage} data-arrived={arrived || undefined} role="dialog" aria-modal="true" aria-labelledby="fun-title">
+    <div ref={root} className="fun" data-stage={stage} data-phase={phase} data-arrived={open || undefined} role="dialog" aria-modal="true" aria-labelledby="fun-title">
       <canvas ref={canvas} className="fun-canvas" aria-hidden="true" />
+      <div className="fun-veil" aria-hidden="true" />
 
       <header className="fun-top">
         <p className="mono fun-sheet">
@@ -201,7 +240,7 @@ export function FunMode({ onExit }: { onExit: () => void }) {
         <ol>
           {route.map((r, i) => (
             <li key={r.id}>
-              <button type="button" aria-current={i === 0 && atStop ? "step" : undefined} disabled={i > 0} onClick={() => engine.current?.flyTo(LAST)}>
+              <button type="button" aria-current={i === rail ? "step" : undefined} onClick={() => engine.current?.flyTo(i + 1)}>
                 <span className="mono">0{i + 1}</span>
                 <strong>{r.place}</strong>
                 <span className="mono">
@@ -226,76 +265,60 @@ export function FunMode({ onExit }: { onExit: () => void }) {
       <div ref={reticle} className="fun-reticle" data-state={lockState} aria-hidden="true">
         <span className="fun-reticle-box" />
         <span className="mono fun-reticle-label">
-          <b>Landmark 01 · {lockState === "locked" ? "locked" : "detected"}</b>
-          <span>{placeLine(STOP)}</span>
+          <b>
+            {retTitle} · {retState}
+          </b>
+          <span>{retLine}</span>
         </span>
       </div>
 
-      <span ref={leader} className="fun-leader" data-on={arrived ? "yes" : "no"} aria-hidden="true" />
-      <section ref={panel} className="fun-panel" data-on={arrived ? "yes" : "no"} aria-labelledby="fun-panel-title" aria-hidden={!arrived}>
-        <p className="mono fun-panel-sheet">
-          <b>Stop 01 / 04</b> <span>Education</span>
-        </p>
-        <h3 id="fun-panel-title">{SCHOOL.school}</h3>
-        <p className="mono fun-panel-place">
-          {placeLine(STOP)
-            .split(" · ")
-            .map((part) => (
-              <span key={part}>{part}</span>
-            ))}
-        </p>
-        <p>{SCHOOL.degree}</p>
-        <dl>
-          <div>
-            <dt className="mono">GPA</dt>
-            <dd>{SCHOOL.gpa}</dd>
-          </div>
-          <div>
-            <dt className="mono">Finished</dt>
-            <dd>{SCHOOL.dates}</dd>
-          </div>
-          <div>
-            <dt className="mono">Campus</dt>
-            <dd>{SCHOOL.campus}</dd>
-          </div>
-        </dl>
-        {srmProject && (
-          <div className="fun-panel-project">
-            <h4>{srmProject.name}</h4>
-            <p>{srmProject.highlight}</p>
-          </div>
-        )}
+      {/* on the way to Boston: how far along the great circle */}
+      <p className="mono fun-transit" aria-hidden={phase !== "transit"}>
+        <b>Great circle</b> · Ongole to Boston · <span ref={km}>0</span> of 12,937 km
+      </p>
+
+      <span ref={leader} className="fun-leader" data-on={open ? "yes" : "no"} aria-hidden="true" />
+      <section
+        ref={panel}
+        className="fun-panel"
+        data-on={open ? "yes" : "no"}
+        aria-labelledby="fun-panel-title"
+        aria-hidden={!open}
+        inert={!open}
+      >
+        <StopPanel k={shown} onExit={onExit} />
       </section>
       <p className="sr-only" aria-live="polite">
-        {arrived ? `Stop 1 of 4, ${placeLine(STOP)}: ${SCHOOL.school}, ${SCHOOL.degree}, GPA ${SCHOOL.gpa}, finished ${SCHOOL.dates}.` : ""}
+        {open ? panelSummary(open) : ""}
       </p>
 
       <footer className="fun-foot">
-        {/* the corner inset: coastlines from the same NOAA data, the India stops, and the drone */}
+        {/* the corner inset: coastlines from the same NOAA data, the stops, and the drone */}
         <figure className="fun-inset" aria-hidden="true">
           <svg viewBox={`0 0 ${inset.width} ${inset.height}`}>
             <path className="coast" d={inset.d} />
-            <polyline className="leg" points={INDIA.map((r) => `${toInset(r.coords).x.toFixed(1)},${toInset(r.coords).y.toFixed(1)}`).join(" ")} />
-            {INDIA.map((r) => {
-              const q = toInset(r.coords);
-              return <circle key={r.id} className={r.id === STOP.id && atStop ? "stop is-current" : "stop"} cx={q.x} cy={q.y} r={r.id === STOP.id ? 3.2 : 2.4} />;
+            {phase === "india" ? (
+              <polyline className="leg" points={insetStops.map((r) => `${toInset(inset, r.coords).x.toFixed(1)},${toInset(inset, r.coords).y.toFixed(1)}`).join(" ")} />
+            ) : (
+              <polyline className="leg" points={ARC.map((c) => `${toInset(inset, c).x.toFixed(1)},${toInset(inset, c).y.toFixed(1)}`).join(" ")} />
+            )}
+            {insetStops.map((r) => {
+              const q = toInset(inset, r.coords);
+              const current = route.indexOf(r) === rail;
+              return <circle key={r.id} className={current ? "stop is-current" : "stop"} cx={q.x} cy={q.y} r={current ? 3.2 : 2.4} />;
             })}
-            <circle ref={droneDot} className="drone" cx={stop.x} cy={stop.y} r={1.9} />
+            <circle ref={droneDot} className="drone" cx={0} cy={0} r={1.9} />
           </svg>
           <figcaption className="mono">
-            <b>{f.inset}</b> · 01 / 04
+            <b>{phase === "india" ? f.inset : f.insetWorld}</b> · 0{rail + 1} / 04
           </figcaption>
         </figure>
         <p className="mono fun-credit">
           <span>{f.exaggeration}</span>
           <span>{f.credit}</span>
         </p>
-        {atStop ? (
-          <button type="button" className="btn btn-secondary" disabled>
-            {f.nextLater}
-          </button>
-        ) : (
-          <button type="button" className="btn btn-secondary fun-next" onClick={() => engine.current?.flyTo(LAST)}>
+        {!atEnd && (
+          <button type="button" className="btn btn-secondary fun-next" onClick={() => engine.current?.flyTo(stopTarget(engine.current.journey, 1, LAST))}>
             {f.next} <span aria-hidden="true">↓</span>
           </button>
         )}
@@ -316,5 +339,156 @@ export function FunMode({ onExit }: { onExit: () => void }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** One sentence for screen readers when a panel opens. */
+function panelSummary(k: number) {
+  if (k === 1 || k === 4) {
+    const s = SCHOOL(route[k - 1].coords.lat);
+    return `Stop ${k} of 4, ${placeLine(route[k - 1])}: ${s.school}, ${s.degree}, GPA ${s.gpa}, ${s.dates}.`;
+  }
+  if (k === 2 || k === 3) {
+    const e = JOB(route[k - 1].coords.lat);
+    return `Stop ${k} of 4, ${placeLine(route[k - 1])}: ${e.role}, ${e.company}, ${e.dates}.`;
+  }
+  if (k >= 5 && k <= 9) return `Plate 2.${k - 4}: ${featured[k - 5].name}, ${featured[k - 5].figure.value} ${featured[k - 5].figure.label}.`;
+  if (k === 10) return "Coursework and earlier work.";
+  return "Contact.";
+}
+
+function Sheet({ left, right }: { left: string; right: string }) {
+  return (
+    <p className="mono fun-panel-sheet">
+      <b>{left}</b> <span>{right}</span>
+    </p>
+  );
+}
+
+function Place({ k }: { k: number }) {
+  return (
+    <p className="mono fun-panel-place">
+      {placeLine(route[k - 1])
+        .split(" · ")
+        .map((part) => (
+          <span key={part}>{part}</span>
+        ))}
+    </p>
+  );
+}
+
+/** The panel content for each stop, from the same content as the plain site. */
+function StopPanel({ k, onExit }: { k: number; onExit: () => void }) {
+  if (k === 1 || k === 4) {
+    const s = SCHOOL(route[k - 1].coords.lat);
+    return (
+      <>
+        <Sheet left={`Stop 0${k} / 04`} right="Education" />
+        <h3 id="fun-panel-title">{s.school}</h3>
+        <Place k={k} />
+        <p>{s.degree}</p>
+        <dl>
+          <div>
+            <dt className="mono">GPA</dt>
+            <dd>{s.gpa}</dd>
+          </div>
+          <div>
+            <dt className="mono">{k === 1 ? "Finished" : "Complete"}</dt>
+            <dd>{s.dates}</dd>
+          </div>
+          {"campus" in s && s.campus && (
+            <div>
+              <dt className="mono">Campus</dt>
+              <dd>{s.campus}</dd>
+            </div>
+          )}
+        </dl>
+        {k === 1 && srmProject && (
+          <div className="fun-panel-project">
+            <h4>{srmProject.name}</h4>
+            <p>{srmProject.highlight}</p>
+          </div>
+        )}
+      </>
+    );
+  }
+  if (k === 2 || k === 3) {
+    const e = JOB(route[k - 1].coords.lat);
+    return (
+      <>
+        <Sheet left={`Stop 0${k} / 04`} right="Experience" />
+        <h3 id="fun-panel-title">{e.company}</h3>
+        <Place k={k} />
+        <p>
+          {e.role} · {e.dates}
+        </p>
+        <ul className="fun-panel-points">
+          {e.points.slice(0, 2).map((p) => (
+            <li key={p}>{p}</li>
+          ))}
+        </ul>
+      </>
+    );
+  }
+  if (k >= 5 && k <= 9) {
+    const p = featured[k - 5];
+    return (
+      <>
+        <Sheet left={`Plate 2.${k - 4}`} right={p.field} />
+        <h3 id="fun-panel-title">{p.name}</h3>
+        <p className="fun-panel-figure">
+          <strong>{p.figure.value}</strong>
+          <span>{p.figure.label}</span>
+        </p>
+        <p>{p.result[1]}</p>
+        <p className="fun-panel-links">
+          {p.links.map((l) => (
+            <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer">
+              {l.label}
+            </a>
+          ))}
+        </p>
+      </>
+    );
+  }
+  if (k === 10) {
+    return (
+      <>
+        <Sheet left="Sheets 03 and 04" right="Coursework · Earlier work" />
+        <h3 id="fun-panel-title">Coursework and earlier work</h3>
+        <ul className="fun-panel-list">
+          {coursework.map((c) => (
+            <li key={c.slug}>
+              <strong>{c.name}</strong> <span className="mono">{c.course}</span>
+            </li>
+          ))}
+          {[...(srmProject ? [srmProject] : []), ...earlierWork].map((c) => (
+            <li key={c.slug}>
+              <strong>{c.name}</strong> <span className="mono">Earlier work</span>
+            </li>
+          ))}
+        </ul>
+        <p className="fun-panel-note">The full gazetteer of smaller builds is on the plain site.</p>
+      </>
+    );
+  }
+  return (
+    <>
+      <Sheet left="Sheet 06" right="Correspondence" />
+      <h3 id="fun-panel-title">Contact</h3>
+      <p className="fun-panel-email">
+        <a href={`mailto:${contact.email}`}>{contact.email}</a>
+      </p>
+      <p className="fun-panel-links">
+        {contact.links.map((l) => (
+          <a key={l.href} href={l.href} target="_blank" rel="noopener noreferrer">
+            {l.label}
+          </a>
+        ))}
+      </p>
+      <button type="button" className="btn btn-secondary" onClick={onExit}>
+        {survey.backLabel}
+      </button>
+    </>
   );
 }

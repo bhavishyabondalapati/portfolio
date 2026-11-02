@@ -87,3 +87,22 @@ export function stopTarget(current: number, dir: 1 | -1, last: number) {
   const next = dir > 0 ? Math.floor(current + 0.02) + 1 : Math.ceil(current - 0.02) - 1;
   return Math.min(Math.max(next, 0), last);
 }
+
+const RAD = Math.PI / 180;
+const unit = (c: Coords) => [Math.cos(c.lat * RAD) * Math.cos(c.lon * RAD), Math.cos(c.lat * RAD) * Math.sin(c.lon * RAD), Math.sin(c.lat * RAD)];
+
+/** Great-circle distance in km (mean Earth radius 6,371 km). */
+export function greatCircleKm(a: Coords, b: Coords) {
+  const u = unit(a), v = unit(b);
+  const dot = Math.min(Math.max(u[0] * v[0] + u[1] * v[1] + u[2] * v[2], -1), 1);
+  return Math.acos(dot) * 6371;
+}
+
+/** The point a fraction t of the way along the great circle from a to b. */
+export function alongGreatCircle(a: Coords, b: Coords, t: number): Coords {
+  const u = unit(a), v = unit(b);
+  const om = Math.acos(Math.min(Math.max(u[0] * v[0] + u[1] * v[1] + u[2] * v[2], -1), 1));
+  const k1 = Math.sin((1 - t) * om) / Math.sin(om), k2 = Math.sin(t * om) / Math.sin(om);
+  const p = u.map((x, i) => x * k1 + v[i] * k2);
+  return { lat: Math.asin(p[2]) / RAD, lon: Math.atan2(p[1], p[0]) / RAD };
+}

@@ -11,7 +11,14 @@ import { deflateSync } from "node:zlib";
 const ERDDAP = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/ETOPO_2022_v1_15s.esriAscii";
 
 // stride 2 = every other 15" sample, so about 0.9 km between samples
-const TILES = [{ name: "india", south: 11.5, north: 18.5, west: 76.5, east: 82, stride: 2 }];
+const TILES = [
+  { name: "india", south: 11.5, north: 18.5, west: 76.5, east: 82, stride: 2 },
+  // Boston and Massachusetts Bay at full 15" detail (about 450 m)
+  { name: "boston", south: 41.9, north: 42.8, west: -71.6, east: -70.4, stride: 1 },
+  // the whole world at 0.5 degrees, for the dotted globe on the flight to Boston
+  { name: "world", south: -89.9, north: 89.9, west: -179.9, east: 179.9, stride: 120 },
+];
+const only = process.argv[2]; // optional: one tile name
 
 // CRC table for PNG chunks (defined before the top-level loop below uses it)
 const CRC = Array.from({ length: 256 }, (_, n) => {
@@ -23,7 +30,7 @@ const CRC = Array.from({ length: 256 }, (_, n) => {
 const OUT = new URL("../public/terrain/", import.meta.url);
 mkdirSync(OUT, { recursive: true });
 
-for (const t of TILES) {
+for (const t of TILES.filter((t) => !only || t.name === only)) {
   const q = `z[(${t.south}):${t.stride}:(${t.north})][(${t.west}):${t.stride}:(${t.east})]`;
   const url = `${ERDDAP}?${encodeURIComponent(q)}`;
   console.log(`fetching ${t.name}: ${url}`);
