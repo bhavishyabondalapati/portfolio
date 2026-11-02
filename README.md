@@ -31,7 +31,7 @@ package.json / package-lock.json  Exact dependency versions and the npm scripts
 next.config.ts                    Static export settings
 tsconfig.json                     TypeScript settings
 vercel.json                       Security headers (CSP, HSTS and others) and caching for Vercel
-.env.example                      Optional SITE_URL placeholder; the site needs no secrets
+.env.example                      Optional settings (SITE_URL, NEXT_PUBLIC_FLYOVER); the site needs no secrets
 .gitignore                        Keeps .env, build output, caches and resumes out of git
 .claude/launch.json               Dev-server entry for the Claude desktop preview
 
@@ -56,7 +56,7 @@ src/engine/util.ts                Small maths helpers (seeded random, damping, e
 src/lib/flyover.ts                Pure maths: projection, height decoding, reveal order, lock timing, great circles
 src/lib/geo.ts                    Coordinate and place-label formatting
 src/lib/surveyMode.ts             Decides whether to offer the 3D mode, and the pre-paint script
-src/lib/site.ts                   The site's public URL for canonical links and previews
+src/lib/site.ts                   The site's public URL, and the flyover feature flag
 src/lib/inset-india.json          Coastline for the India inset map (generated)
 src/lib/inset-world.json          Coastline for the world inset map (generated)
 
@@ -77,6 +77,8 @@ tests/util.test.ts                Maths helpers
 
 docs/phase-*.md                   Each phase's plan or proposal, in order (phases 0 to 4 were an earlier concept)
 docs/project-list-proposal.md     Which repos go where on the site, and why
+docs/flyover-feedback.md          Feedback on the flyover, for the next round
+docs/morning-report.md            What was built overnight on 2 November, and what was measured
 docs/resume-kambaz-bullets.md     Resume wording for the Kambaz project
 docs/proposal/*.html              The survey sketch and the flyover storyboard
 docs/screenshots/*.png            Screenshots of the site and every flyover stop
@@ -106,9 +108,18 @@ npm run build
 npm start
 ```
 
-`npm start` serves the static site from `out/` at http://localhost:3000. The 3D mode appears as
-"Fly the survey" in a window at least 1024 px wide, with a mouse or trackpad, and without
-reduced motion.
+`npm start` serves the static site from `out/` at http://localhost:3000.
+
+The 3D mode is behind a feature flag and is **off by default**, so the plain site can go live on
+its own. To turn it on, build with the flag:
+
+```bash
+NEXT_PUBLIC_FLYOVER=on npm run build && npm start
+```
+
+(or `NEXT_PUBLIC_FLYOVER=on npm run dev`). On Vercel, set `NEXT_PUBLIC_FLYOVER=on` in the
+project's environment variables. It then appears as "Fly the survey" in a window at least 1024 px
+wide, with a mouse or trackpad, and without reduced motion.
 
 Tests and type checks:
 

@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, IBM_Plex_Mono } from "next/font/google";
-import { SURVEY_SCRIPT } from "@/lib/surveyMode";
+import { surveyScript } from "@/lib/surveyMode";
 import { person } from "@/content";
-import { SITE_URL } from "@/lib/site";
+import { FLYOVER_ENABLED, SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 // next/font downloads the fonts at build time and serves them from this site, so no request goes to Google.
@@ -58,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: SURVEY_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: surveyScript(FLYOVER_ENABLED) }} />
       </head>
       <body>{children}</body>
     </html>
