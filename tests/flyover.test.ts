@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { decodeTerrarium, lockAt, projector, revealGrid, sampleGrid, stopTarget, type TileMeta } from "../src/lib/flyover.ts";
+import { alongGreatCircle, decodeTerrarium, greatCircleKm, lockAt, projector, revealGrid, sampleGrid, stopTarget, type TileMeta } from "../src/lib/flyover.ts";
 import { route } from "../src/content.ts";
 
 const india: TileMeta = JSON.parse(readFileSync(new URL("../public/terrain/india.json", import.meta.url), "utf8"));
@@ -66,4 +66,14 @@ test("next and previous stop stay inside the route", () => {
   assert.equal(stopTarget(1, 1, 1), 1);
   assert.equal(stopTarget(1, -1, 1), 0);
   assert.equal(stopTarget(0.6, -1, 1), 0);
+});
+
+test("the flight to Boston is the great circle from Ongole (about 12,937 km)", () => {
+  const km = greatCircleKm(route[2].coords, route[3].coords);
+  assert.ok(Math.abs(km - 12937) < 15, `${km.toFixed(0)} km`);
+  const start = alongGreatCircle(route[2].coords, route[3].coords, 0);
+  const end = alongGreatCircle(route[2].coords, route[3].coords, 1);
+  assert.ok(Math.abs(start.lat - route[2].coords.lat) < 1e-9 && Math.abs(end.lon - route[3].coords.lon) < 1e-9);
+  // halfway is far north: the shortest way from India to Boston crosses high latitudes
+  assert.ok(alongGreatCircle(route[2].coords, route[3].coords, 0.5).lat > 55);
 });
