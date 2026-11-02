@@ -401,13 +401,15 @@ export const survey = {
   // Words inside the 3D flyover.
   flight: {
     title: "The survey, flown",
-    subtitle: "Chennai to Boston, in the order it happened",
-    hint: "Scroll, or press the down arrow, to descend",
+    subtitle: "A drone maps the route from Chennai to Boston, in the order it happened",
+    hint: "Scroll, or press the down arrow, to fly and map",
     next: "Next stop",
     previous: "Back to the start",
     nextLater: "Hyderabad is next to be built",
     loading: "Loading terrain",
     preparing: "Preparing the scene",
+    locked: "Landmark locked",
+    inset: "India leg",
     exaggeration: "Vertical exaggeration ×12",
     credit: "Terrain: NOAA NCEI, ETOPO 2022 15 Arc-Second Global Relief Model, doi:10.25921/fd45-gt74",
     failed: "The 3D view could not start on this device.",
@@ -429,8 +431,8 @@ export const survey = {
  * the plain site lists sections by importance instead.
  */
 export const route = [
-  { id: "chennai", place: "Chennai", what: "SRM Institute of Science and Technology", when: "B.Tech, finished Jan. 2025", coords: { lat: 12.8231, lon: 80.0442 } },
-  { id: "hyderabad", place: "Hyderabad", what: "Mouri Tech", when: "Sept. to Oct. 2024", coords: { lat: 17.385, lon: 78.4867 } },
-  { id: "ongole", place: "Ongole", what: "JC Biotech", when: "Nov. 2024 to Jun. 2025", coords: { lat: 15.5057, lon: 80.0499 } },
-  { id: "boston", place: "Boston", what: "Northeastern University", when: "MS, graduating May 2027", coords: { lat: 42.3398, lon: -71.0892 } },
-] satisfies { id: string; place: string; what: string; when: string; coords: Coords }[];
+  { id: "chennai", place: "Chennai", region: "Tamil Nadu", country: "India", what: "SRM Institute of Science and Technology", when: "B.Tech, finished Jan. 2025", coords: { lat: 12.8231, lon: 80.0442 } },
+  { id: "hyderabad", place: "Hyderabad", region: "Telangana", country: "India", what: "Mouri Tech", when: "Sept. to Oct. 2024", coords: { lat: 17.385, lon: 78.4867 } },
+  { id: "ongole", place: "Ongole", region: "Andhra Pradesh", country: "India", what: "JC Biotech", when: "Nov. 2024 to Jun. 2025", coords: { lat: 15.5057, lon: 80.0499 } },
+  { id: "boston", place: "Boston", region: "Massachusetts", country: "USA", what: "Northeastern University", when: "MS, graduating May 2027", coords: { lat: 42.3398, lon: -71.0892 } },
+] satisfies { id: string; place: string; region: string; country: string; what: string; when: string; coords: Coords }[];

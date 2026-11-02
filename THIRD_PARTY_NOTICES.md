@@ -49,7 +49,8 @@ Archivo and IBM Plex Mono, SIL Open Font License 1.1, served from this site by `
 
 ## Elevation data
 
-`public/terrain/*` is made by `scripts/terrain.mjs` from:
+`public/terrain/*` (made by `scripts/terrain.mjs`) and the coastline in `src/lib/inset-india.json`
+(made by `scripts/inset.mjs`) come from:
 
 Terrain: NOAA NCEI, ETOPO 2022 15 Arc-Second Global Relief Model, doi:10.25921/fd45-gt74.
 

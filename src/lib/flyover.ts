@@ -45,14 +45,41 @@ export function sampleGrid(h: Float32Array, w: number, rows: number, col: number
 }
 
 /**
- * The scan sweep at a stop, from the seconds since arrival. The ring grows for `grow` seconds
- * (sweep 0 to 1), then the filled mask cells fade back to outlines over `settle` seconds.
+ * The landmark lock at a stop, from the seconds since arrival: the reticle closes in for `close`
+ * seconds (lock 0 to 1), and the panel may open once it is done.
  */
-export function sweepAt(seconds: number, grow = 1.2, settle = 1.6) {
-  if (seconds <= 0) return { sweep: 0, settle: 0, done: false };
-  const sweep = Math.min(seconds / grow, 1);
-  const s = Math.min(Math.max((seconds - grow) / settle, 0), 1);
-  return { sweep, settle: s, done: seconds >= grow };
+export function lockAt(seconds: number, close = 0.9) {
+  if (seconds <= 0) return { lock: 0, done: false };
+  return { lock: Math.min(seconds / close, 1), done: seconds >= close };
+}
+
+/**
+ * When the drone's lidar first reaches each cell of a grid: the distance flown (km) at the first
+ * path sample within `range` of the cell's centre, or Infinity if it never does. The drone flies
+ * `samples` in order (x, z in km, spaced `step` km apart). Cells are `cell` km square, covering
+ * [x0, x0 + cols*cell) by [z0, z0 + rows*cell). This is what makes the map appear scan by scan.
+ */
+export function revealGrid(
+  samples: { x: number; z: number }[],
+  step: number,
+  range: number,
+  grid: { x0: number; z0: number; cols: number; rows: number; cell: number },
+) {
+  const { x0, z0, cols, rows, cell } = grid;
+  const out = new Float32Array(cols * rows).fill(Infinity);
+  const reach = Math.ceil(range / cell);
+  samples.forEach((s, i) => {
+    const cc = Math.floor((s.x - x0) / cell), cr = Math.floor((s.z - z0) / cell);
+    for (let r = Math.max(cr - reach, 0); r <= Math.min(cr + reach, rows - 1); r++) {
+      for (let c = Math.max(cc - reach, 0); c <= Math.min(cc + reach, cols - 1); c++) {
+        const k = r * cols + c;
+        if (out[k] !== Infinity) continue;
+        const dx = x0 + (c + 0.5) * cell - s.x, dz = z0 + (r + 0.5) * cell - s.z;
+        if (dx * dx + dz * dz <= range * range) out[k] = i * step;
+      }
+    }
+  });
+  return out;
 }
 
 /** Moves a journey position toward the next or previous stop (stops sit at whole numbers). */

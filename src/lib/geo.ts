@@ -7,3 +7,13 @@ export function formatCoords(c: Coords, digits = 4) {
   const lon = `${Math.abs(c.lon).toFixed(digits)}° ${c.lon >= 0 ? "E" : "W"}`;
   return `${lat} · ${lon}`;
 }
+
+/** 12.8231, 80.0442 -> "12.82° N, 80.04° E" (the short form used beside place names) */
+export function formatCoordsShort(c: Coords) {
+  return formatCoords(c, 2).replace(" · ", ", ");
+}
+
+/** "Chennai, Tamil Nadu, India · 12.82° N, 80.04° E" */
+export function placeLine(p: { place: string; region: string; country: string; coords: Coords }) {
+  return `${p.place}, ${p.region}, ${p.country} · ${formatCoordsShort(p.coords)}`;
+}

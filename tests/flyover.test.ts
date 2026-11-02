@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { decodeTerrarium, projector, sampleGrid, stopTarget, sweepAt, type TileMeta } from "../src/lib/flyover.ts";
+import { decodeTerrarium, lockAt, projector, revealGrid, sampleGrid, stopTarget, type TileMeta } from "../src/lib/flyover.ts";
 import { route } from "../src/content.ts";
 
 const india: TileMeta = JSON.parse(readFileSync(new URL("../public/terrain/india.json", import.meta.url), "utf8"));
@@ -41,11 +41,23 @@ test("bilinear sampling interpolates between samples", () => {
   assert.equal(sampleGrid(h, 2, 2, 0, 0), 0);
 });
 
-test("the sweep grows, then settles", () => {
-  assert.deepEqual(sweepAt(0), { sweep: 0, settle: 0, done: false });
-  assert.equal(sweepAt(0.6).sweep, 0.5);
-  assert.equal(sweepAt(1.2).done, true);
-  assert.equal(sweepAt(10).settle, 1);
+test("the landmark lock closes, then is done", () => {
+  assert.deepEqual(lockAt(0), { lock: 0, done: false });
+  assert.equal(lockAt(0.45).lock, 0.5);
+  assert.equal(lockAt(0.9).done, true);
+});
+
+test("the map is revealed in flight order, only within lidar range", () => {
+  // a drone flying east along z = 0.5 from x = 0 to x = 9, range 2 km, over a 10 x 6 grid of 1 km cells
+  const samples = Array.from({ length: 10 }, (_, i) => ({ x: i, z: 0.5 }));
+  const grid = { x0: 0, z0: -1.5, cols: 10, rows: 6, cell: 1 };
+  const r = revealGrid(samples, 1, 2, grid);
+  const at = (x: number, z: number) => r[Math.floor(z - grid.z0) * grid.cols + Math.floor(x)];
+  assert.equal(at(0.5, 0.5), 0); // under the start
+  assert.equal(at(4.5, 0.5), 3); // reached at 3 km: centre 4.5 is within 2 km of x = 3
+  assert.ok(at(9.5, 0.5) < at(9.5, -1.5) || at(9.5, -1.5) === Infinity);
+  assert.equal(at(0.5, 4.0), Infinity); // cell centre 3.5 km from the path: never scanned
+  for (let x = 1; x < 9; x++) assert.ok(at(x + 0.5, 0.5) >= at(x - 0.5, 0.5)); // later cells, later scans
 });
 
 test("next and previous stop stay inside the route", () => {

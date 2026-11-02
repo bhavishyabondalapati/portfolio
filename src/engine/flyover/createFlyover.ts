@@ -1,64 +1,62 @@
-// The flyover renderer: dusk sky, real terrain, a camera on a curve, the scan sweep at each stop,
-// and screen positions for the HTML panels and labels. React owns the page around it.
+// The flyover renderer, as a SLAM run: a drone flies the route and its lidar builds the map live.
+// Off-white points are the map, orange is the live scan and the trajectory, the background is navy.
+// React owns the page around it; this reports screen positions for the HTML labels and panel.
 //
-// Slice 1 flies from the Bay of Bengal (journey 0) to SRM, Kattankulathur (journey 1).
+// Slice 1 flies from off the Coromandel coast (journey 0) to SRM, Kattankulathur (journey 1).
 import * as THREE from "three";
-import {
-  BloomEffect,
-  EffectComposer,
-  EffectPass,
-  RenderPass,
-  SMAAEffect,
-  ToneMappingEffect,
-  ToneMappingMode,
-  VignetteEffect,
-} from "postprocessing";
+import { BloomEffect, EffectComposer, EffectPass, RenderPass, SMAAEffect, ToneMappingEffect, ToneMappingMode, VignetteEffect } from "postprocessing";
 import type { Coords } from "@/content";
-import { EXAGGERATION, sweepAt } from "@/lib/flyover";
+import { EXAGGERATION, lockAt } from "@/lib/flyover";
 import { clamp, damp, easeInOut, lerp, smooth } from "../util";
-import { POSITION_VERT, SKY_FRAG, TERRAIN_FRAG, WATER_FRAG, WORLD_VERT } from "./shaders";
-import { buildTerrain, heightAt, loadTile, type Tile } from "./terrain";
+import { GRID_FRAG, POINTS_FRAG, POINTS_VERT, POSITION_VERT } from "./shaders";
+import { buildCloud, heightAt, loadTile } from "./terrain";
 
 /** A point on screen for an HTML element pinned to the scene. */
 export type Anchor = { id: string; x: number; y: number; visible: boolean };
 
+/** What the HTML around the scene needs each frame. */
+export type FrameState = {
+  journey: number;
+  anchors: Anchor[];
+  /** the landmark is within lidar range */
+  detected: boolean;
+  /** 0 to 1 while the reticle closes on the landmark */
+  lock: number;
+  drone: Coords;
+};
+
 export type FlyoverOptions = {
-  marker: Coords;
-  /** Map labels drawn as HTML, faded in between two journey positions. */
+  landmark: Coords;
+  /** Map labels drawn as HTML, shown between two journey positions. */
   labels: { id: string; coords: Coords; from: number; to: number }[];
   onBytes: (loaded: number, total: number) => void;
   onStage: (stage: "loading" | "preparing" | "ready") => void;
-  onFrame: (journey: number, anchors: Anchor[]) => void;
-  /** Called when the sweep at a stop finishes (true) or the camera leaves the stop (false). */
+  onFrame: (s: FrameState) => void;
+  /** Called when the landmark lock finishes (true) or the drone leaves the stop (false). */
   onArrive: (arrived: boolean) => void;
 };
 
-const PALETTE = {
-  zenith: "#08111f",
-  horizon: "#2e2d4a",
-  ember: "#ff7a3a",
-  land: "#0e1a2f",
-  landLit: "#2f3350",
-  seaFloor: "#060d19",
-  deep: "#040a15",
-  line: "#ffb38a",
-  index: "#ffc8a3",
-  coast: "#ff6a2b",
-  mask: "#ff6a2b",
-};
+const PALETTE = { navy: "#0a1426", white: "#ece6d6", orange: "#ff6a2b" };
 
-// The sun has just set in the west-north-west, about a degree below the horizon: an ember seam
-// along the horizon, deep navy above.
-const SUN = new THREE.Vector3(-1, -0.018, -0.32).normalize();
-
-/** Camera shots: where the camera is (with altitude in km) and what it looks at. */
-const SHOTS: { at: Coords; alt: number; look: Coords; lookAlt: number }[] = [
-  { at: { lat: 12.45, lon: 81.3 }, alt: 34, look: { lat: 13.15, lon: 79.6 }, lookAlt: 0 },
-  { at: { lat: 12.58, lon: 80.9 }, alt: 23, look: { lat: 13.0, lon: 79.85 }, lookAlt: 0 },
-  { at: { lat: 12.68, lon: 80.48 }, alt: 13, look: { lat: 12.86, lon: 80.02 }, lookAlt: 0 },
+/** The drone's flight: where it is and how high (km), in from the Bay of Bengal over the coast. */
+const FLIGHT: { at: Coords; alt: number }[] = [
+  { at: { lat: 13.0, lon: 80.45 }, alt: 6.5 },
+  { at: { lat: 12.95, lon: 80.3 }, alt: 5.6 },
+  { at: { lat: 12.89, lon: 80.15 }, alt: 4.6 },
 ];
-/** The hold at the stop, relative to the marker: km east, km south, km up. */
-const HOLD = { east: 15, south: 25, up: 10 };
+/** The hover, relative to the landmark: km east, km north and km up. */
+const HOVER = { east: 1.5, north: 2.6, up: 3.4 };
+/**
+ * The hold at the stop: the camera north of the landmark looking south, so the coast recedes on
+ * the left and the panel can sit over the sea. `aim` shifts the view east of the landmark (km),
+ * which puts the landmark right of centre.
+ */
+const HOLD = { east: 7, north: 30, up: 13, aim: 6 };
+const RANGE = 30; // lidar range, km
+const STEP = 0.5; // km between path samples (and between possible scans)
+const SCAN_EVERY = 0.3; // seconds between scans
+/** The chase camera, relative to the drone and its heading (km). */
+const CHASE = { back: 13, side: 8, up: 7.5, ahead: 10 };
 
 const pause = (ms = 0) => new Promise((r) => setTimeout(r, ms));
 
@@ -66,105 +64,121 @@ export async function createFlyover(canvas: HTMLCanvasElement, opt: FlyoverOptio
   opt.onStage("loading");
   const tile = await loadTile("india", opt.onBytes);
   opt.onStage("preparing");
-  // let the loading line repaint before the build
-  await pause(30);
+  await pause(30); // let the loading line repaint before the build
 
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, stencil: false, powerPreference: "high-performance" });
   let pixelRatio = Math.min(window.devicePixelRatio, 2);
   renderer.setPixelRatio(pixelRatio);
-  renderer.setClearColor(PALETTE.zenith);
-
+  renderer.setClearColor(PALETTE.navy);
   const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 2400);
-
+  scene.background = new THREE.Color(PALETTE.navy);
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 1200);
   const color = (hex: string) => new THREE.Color(hex);
-  const shared = {
-    uSun: { value: SUN },
-    uZenith: { value: color(PALETTE.zenith) },
-    uHorizon: { value: color(PALETTE.horizon) },
-    uEmber: { value: color(PALETTE.ember) },
-    uCam: { value: camera.position },
-    uFog: { value: 1 / 260 },
-  };
 
-  // sky: a big sphere that follows the camera
-  const sky = new THREE.Mesh(
-    new THREE.SphereGeometry(2000, 32, 16),
-    new THREE.ShaderMaterial({ vertexShader: POSITION_VERT, fragmentShader: SKY_FRAG, uniforms: shared, side: THREE.BackSide, depthWrite: false }),
-  );
-  sky.frustumCulled = false;
-  sky.renderOrder = -1;
-  scene.add(sky);
-
-  const marker = tile.proj.toLocal(opt.marker);
-  const markerY = heightAt(tile, marker.x, marker.z);
-  const terrainMat = new THREE.ShaderMaterial({
-    vertexShader: WORLD_VERT,
-    fragmentShader: TERRAIN_FRAG,
-    uniforms: {
-      ...shared,
-      uExag: { value: EXAGGERATION },
-      uLand: { value: color(PALETTE.land) },
-      uLandLit: { value: color(PALETTE.landLit) },
-      uSeaFloor: { value: color(PALETTE.seaFloor) },
-      uLine: { value: color(PALETTE.line) },
-      uIndex: { value: color(PALETTE.index).multiplyScalar(1.15) },
-      uCoast: { value: color(PALETTE.coast).multiplyScalar(2.4) },
-      uMask: { value: color(PALETTE.mask) },
-      uMarker: { value: new THREE.Vector3(marker.x, markerY, marker.z) },
-      uSweep: { value: 0 },
-      uSettle: { value: 0 },
-      uRadius: { value: 9 },
-      uCell: { value: 0.7 },
-    },
-  });
-  const terrain = buildTerrain(tile, terrainMat);
-  scene.add(terrain);
-
-  const water = new THREE.Mesh(
-    new THREE.PlaneGeometry(4000, 4000).rotateX(-Math.PI / 2),
-    new THREE.ShaderMaterial({
-      vertexShader: POSITION_VERT,
-      fragmentShader: WATER_FRAG,
-      uniforms: { ...shared, uDeep: { value: color(PALETTE.deep) } },
-      transparent: true,
-    }),
-  );
-  water.renderOrder = 1;
-  scene.add(water);
-
-  // the marker pin: a thin glowing mast with a diamond on top, rising out of the terrain
-  const PIN = 3.2;
-  const glow = (hex: string, k: number) => new THREE.MeshBasicMaterial({ color: color(hex).multiplyScalar(k), toneMapped: false });
-  const pin = new THREE.Group();
-  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, PIN, 6).translate(0, PIN / 2, 0), glow(PALETTE.line, 1.6));
-  const head = new THREE.Mesh(new THREE.OctahedronGeometry(0.16), glow(PALETTE.coast, 2.6));
-  head.position.y = PIN;
-  pin.add(mast, head);
-  pin.position.set(marker.x, markerY, marker.z);
-  scene.add(pin);
-
-  // ---- the camera path ----
+  // ---- the flight path ----
   const local = (c: Coords, alt: number) => {
     const p = tile.proj.toLocal(c);
     return new THREE.Vector3(p.x, alt, p.z);
   };
-  const markerV = new THREE.Vector3(marker.x, markerY, marker.z);
-  const holdPos = markerV.clone().add(new THREE.Vector3(HOLD.east, HOLD.up, HOLD.south));
-  // look a little to the right of the marker, so it sits left of centre with room for the panel
-  const toMarker = markerV.clone().sub(holdPos).normalize();
-  const right = new THREE.Vector3().crossVectors(toMarker, new THREE.Vector3(0, 1, 0)).normalize();
-  const holdLook = markerV.clone().addScaledVector(right, 7.5).add(new THREE.Vector3(0, 2.5, 0));
-  const posCurve = new THREE.CatmullRomCurve3([...SHOTS.map((s) => local(s.at, s.alt)), holdPos], false, "centripetal");
-  const lookCurve = new THREE.CatmullRomCurve3([...SHOTS.map((s) => local(s.look, s.lookAlt)), holdLook], false, "centripetal");
+  const lm = tile.proj.toLocal(opt.landmark);
+  const landmark = new THREE.Vector3(lm.x, heightAt(tile, lm.x, lm.z), lm.z);
+  const hover = new THREE.Vector3(lm.x + HOVER.east, HOVER.up, lm.z - HOVER.north);
+  const holdCam = new THREE.Vector3(lm.x + HOLD.east, landmark.y + HOLD.up, lm.z - HOLD.north);
+  const holdLook = landmark.clone().add(new THREE.Vector3(HOLD.aim, 0.8, 0));
+  const flight = new THREE.CatmullRomCurve3([...FLIGHT.map((f) => local(f.at, f.alt)), hover], false, "centripetal");
+  const length = flight.getLength();
+  const samples = Array.from({ length: Math.floor(length / STEP) + 1 }, (_, i) => flight.getPointAt(Math.min((i * STEP) / length, 1)));
 
-  // ---- post-processing: bloom on the glowing lines, tone mapping, vignette, then SMAA ----
-  const composer = new EffectComposer(renderer, { frameBufferType: THREE.HalfFloatType });
-  const bloom = new BloomEffect({ mipmapBlur: true, luminanceThreshold: 0.55, luminanceSmoothing: 0.25, intensity: 1.15, radius: 0.7 });
-  composer.addPass(new RenderPass(scene, camera));
-  composer.addPass(
-    new EffectPass(camera, bloom, new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL }), new VignetteEffect({ offset: 0.28, darkness: 0.55 })),
+  // ---- scan times: when each stretch of the flight was scanned (seconds), or never (1e9) ----
+  const times = new Float32Array(samples.length).fill(1e9);
+  const timesTex = new THREE.DataTexture(times, samples.length, 1, THREE.RedFormat, THREE.FloatType);
+  timesTex.magFilter = timesTex.minFilter = THREE.NearestFilter;
+  timesTex.needsUpdate = true;
+
+  const scan = {
+    uDrone: { value: new THREE.Vector3() },
+    uRange: { value: RANGE },
+    uBeam: { value: 0 },
+    uCam: { value: camera.position },
+    uFog: { value: 1 / 150 },
+    uOrange: { value: color(PALETTE.orange) },
+    uWhite: { value: color(PALETTE.white) },
+  };
+
+  // ---- the map: lidar returns along the flight ----
+  const cloudMat = new THREE.ShaderMaterial({
+    vertexShader: POINTS_VERT,
+    fragmentShader: POINTS_FRAG,
+    uniforms: {
+      ...scan,
+      uTimes: { value: timesTex },
+      uSteps: { value: samples.length },
+      uStep: { value: STEP },
+      uTime: { value: 0 },
+      uExag: { value: EXAGGERATION },
+      uPx: { value: pixelRatio },
+    },
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  });
+  const cloud = buildCloud(tile, samples, STEP, RANGE, cloudMat);
+  scene.add(cloud);
+
+  const grid = new THREE.Mesh(
+    new THREE.PlaneGeometry(2400, 2400).rotateX(-Math.PI / 2),
+    new THREE.ShaderMaterial({ vertexShader: POSITION_VERT, fragmentShader: GRID_FRAG, uniforms: scan, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }),
   );
+  grid.renderOrder = -1;
+  scene.add(grid);
+
+  // ---- the trajectory, pose markers, the drone and the landmark ----
+  const glow = (hex: string, k: number) => new THREE.MeshBasicMaterial({ color: color(hex).multiplyScalar(k), side: THREE.DoubleSide });
+  const SEGMENTS = 400, RADIAL = 3;
+  const trail = new THREE.Mesh(new THREE.TubeGeometry(flight, SEGMENTS, 0.02, RADIAL, false), glow(PALETTE.orange, 1.3));
+  scene.add(trail);
+
+  // a flat chevron, nose along +Z
+  const chevron = new THREE.ShapeGeometry(
+    new THREE.Shape([new THREE.Vector2(0, 0.5), new THREE.Vector2(0.36, -0.36), new THREE.Vector2(0, -0.14), new THREE.Vector2(-0.36, -0.36)]),
+  ).rotateX(Math.PI / 2);
+  const drone = new THREE.Mesh(chevron, glow(PALETTE.orange, 1.35));
+  drone.scale.setScalar(0.8);
+  scene.add(drone);
+
+  const POSE_EVERY = 3; // km
+  const poseCount = Math.floor(length / POSE_EVERY);
+  const poses = new THREE.InstancedMesh(chevron, glow(PALETTE.orange, 0.9), poseCount);
+  const o = new THREE.Object3D();
+  for (let i = 0; i < poseCount; i++) {
+    const t = ((i + 1) * POSE_EVERY) / length;
+    o.position.copy(flight.getPointAt(t));
+    o.lookAt(o.position.clone().add(flight.getTangentAt(t)));
+    o.scale.setScalar(0.32);
+    o.updateMatrix();
+    poses.setMatrixAt(i, o.matrix);
+  }
+  poses.count = 0;
+  scene.add(poses);
+
+  // a faint line from the drone straight down, so its altitude reads
+  const dropGeo = new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute([0, 0, 0, 0, 0, 0], 3));
+  const drop = new THREE.Line(dropGeo, new THREE.LineBasicMaterial({ color: color(PALETTE.white), transparent: true, opacity: 0.28 }));
+  drop.frustumCulled = false;
+  scene.add(drop);
+
+  const mark = new THREE.Mesh(new THREE.OctahedronGeometry(0.14), glow(PALETTE.white, 1.1));
+  mark.position.copy(landmark).y += 0.2;
+  scene.add(mark);
+
+  // the first scan sample that reaches the landmark: from then on it is "detected"
+  const detectAt = samples.findIndex((s) => Math.hypot(s.x - landmark.x, s.z - landmark.z) <= RANGE * 0.8);
+
+  // ---- post-processing: a little bloom on the orange, tone mapping, vignette, then SMAA ----
+  const composer = new EffectComposer(renderer, { frameBufferType: THREE.HalfFloatType });
+  const bloom = new BloomEffect({ mipmapBlur: true, luminanceThreshold: 0.85, luminanceSmoothing: 0.2, intensity: 0.9, radius: 0.6 });
+  composer.addPass(new RenderPass(scene, camera));
+  composer.addPass(new EffectPass(camera, bloom, new ToneMappingEffect({ mode: ToneMappingMode.NEUTRAL }), new VignetteEffect({ offset: 0.3, darkness: 0.45 })));
   composer.addPass(new EffectPass(camera, new SMAAEffect()));
 
   const resize = () => {
@@ -173,6 +187,7 @@ export async function createFlyover(canvas: HTMLCanvasElement, opt: FlyoverOptio
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(w, h, false);
     composer.setSize(w, h, false);
+    cloudMat.uniforms.uPx.value = pixelRatio;
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
   };
@@ -181,26 +196,53 @@ export async function createFlyover(canvas: HTMLCanvasElement, opt: FlyoverOptio
   resize();
 
   // ---- journey state ----
-  let journey = 0; // where the camera is
-  let target = 0; // where it is heading
+  let journey = 0, target = 0;
   let auto: { from: number; to: number; t: number; dur: number } | null = null;
-  let arrivedAt = -1; // clock time of arrival, or -1
-  let arrived = false;
+  let arrivedAt = -1, arrived = false;
+  let lastScan = -1;
 
-  const v = new THREE.Vector3(), look = new THREE.Vector3(), tmp = new THREE.Vector3();
+  const up = new THREE.Vector3(0, 1, 0);
+  const D = new THREE.Vector3(), T = new THREE.Vector3(), right = new THREE.Vector3();
+  const look = new THREE.Vector3(), tmp = new THREE.Vector3(), v = new THREE.Vector3();
+
   const place = (j: number, time: number) => {
-    posCurve.getPoint(j, camera.position);
-    lookCurve.getPoint(j, look);
-    // a slow drift around the marker while holding at the stop
-    const hold = smooth(0.92, 1, j);
+    flight.getPointAt(j, D);
+    flight.getTangentAt(j, T);
+    T.y = 0;
+    T.normalize();
+    right.crossVectors(T, up);
+    // chase: behind the drone and off to its left, so the trajectory crosses the frame
+    // it starts high and looking down on the first scan, then settles in behind the drone
+    const settle = smooth(0, 0.45, j);
+    camera.position.copy(D).addScaledVector(T, -CHASE.back).addScaledVector(right, -CHASE.side).addScaledVector(up, lerp(CHASE.up * 1.9, CHASE.up, settle));
+    look.copy(D).addScaledVector(T, lerp(CHASE.ahead * 0.6, CHASE.ahead, settle)).addScaledVector(up, -D.y * 0.55);
+    // at the stop, swing round to the hold: north of the landmark, looking south
+    const hold = easeInOut(smooth(0.62, 1, j));
     if (hold > 0) {
-      const a = Math.sin(time * 0.09) * 0.1 * hold;
-      v.copy(camera.position).sub(markerV).applyAxisAngle(THREE.Object3D.DEFAULT_UP, a);
-      camera.position.copy(markerV).add(v);
+      camera.position.lerp(holdCam, hold);
+      look.lerp(holdLook, hold);
+      const a = Math.sin(time * 0.08) * 0.06 * hold; // a slow drift while holding
+      v.copy(camera.position).sub(landmark).applyAxisAngle(up, a);
+      camera.position.copy(landmark).add(v);
     }
     camera.lookAt(look);
-    shared.uFog.value = lerp(1 / 340, 1 / 170, smooth(0.1, 0.95, j));
-    pin.scale.set(1, Math.max(smooth(0.35, 0.85, j), 0.001), 1);
+
+    drone.position.copy(D);
+    drone.lookAt(tmp.copy(D).add(T));
+    scan.uDrone.value.copy(D);
+    const pos = dropGeo.attributes.position as THREE.BufferAttribute;
+    pos.setXYZ(0, D.x, D.y, D.z);
+    pos.setXYZ(1, D.x, Math.max(heightAt(tile, D.x, D.z), 0), D.z);
+    pos.needsUpdate = true;
+    trail.geometry.setDrawRange(0, Math.floor(j * SEGMENTS) * RADIAL * 6);
+    poses.count = Math.min(Math.floor((j * length) / POSE_EVERY), poseCount);
+  };
+
+  /** A scan: everything within range of the flight so far gets this moment as its scan time. */
+  const scanNow = (time: number) => {
+    const k = Math.round((journey * length) / STEP);
+    for (let i = 0; i < times.length; i++) times[i] = i <= k ? Math.min(times[i], time) : 1e9;
+    timesTex.needsUpdate = true;
   };
 
   const project = (p: THREE.Vector3, id: string): Anchor => {
@@ -212,17 +254,14 @@ export async function createFlyover(canvas: HTMLCanvasElement, opt: FlyoverOptio
     const p = tile.proj.toLocal(l.coords);
     return { ...l, p: new THREE.Vector3(p.x, Math.max(heightAt(tile, p.x, p.z), 0) + 0.3, p.z) };
   });
-  const pinTop = markerV.clone().add(new THREE.Vector3(0, PIN, 0));
 
   // ---- adaptive quality: drop bloom resolution, then pixel ratio, if frames run slow ----
-  let quality = 2;
-  let slowFrames = 0, frames = 0;
-  const stats = { fps: 0, quality, frameMs: 0 };
+  let quality = 2, slowFrames = 0, frames = 0;
+  const stats = { fps: 0, quality, frameMs: 0, points: cloud.geometry.attributes.position.count };
   (window as unknown as { __flyStats: typeof stats }).__flyStats = stats;
-
-  const clock = new THREE.Timer();
   let fpsWindow = 0, fpsFrames = 0;
 
+  const clock = new THREE.Timer();
   const frame = (now: number) => {
     clock.update(now);
     const dt = Math.min(clock.getDelta(), 0.1);
@@ -237,36 +276,37 @@ export async function createFlyover(canvas: HTMLCanvasElement, opt: FlyoverOptio
     if (Math.abs(journey - target) < 1e-4) journey = target;
     place(journey, time);
 
-    // arrival: the sweep starts when the camera settles at the stop, and resets if it leaves
+    if (time - lastScan >= SCAN_EVERY) {
+      lastScan = time;
+      scanNow(time);
+    }
+    cloudMat.uniforms.uTime.value = time;
+    scan.uBeam.value = (time * Math.PI * 2) / 2.4; // one turn every 2.4 s
+
     if (journey > 0.985 && arrivedAt < 0) arrivedAt = time;
     if (journey < 0.9 && arrivedAt >= 0) {
       arrivedAt = -1;
       if (arrived) opt.onArrive((arrived = false));
     }
-    const s = sweepAt(arrivedAt < 0 ? 0 : time - arrivedAt);
-    terrainMat.uniforms.uSweep.value = s.sweep;
-    terrainMat.uniforms.uSettle.value = s.settle;
-    if (s.done && !arrived) opt.onArrive((arrived = true));
-    head.rotation.y = time * 0.8;
+    const l = lockAt(arrivedAt < 0 ? 0 : time - arrivedAt);
+    if (l.done && !arrived) opt.onArrive((arrived = true));
 
     composer.render(dt);
 
-    const anchors = [project(pinTop, "marker")];
-    for (const l of labelPoints) {
-      const a = project(l.p, l.id);
-      a.visible &&= journey >= l.from && journey <= l.to;
+    const anchors = [project(tmp.copy(landmark).setY(landmark.y + 0.2), "landmark")];
+    for (const lp of labelPoints) {
+      const a = project(lp.p, lp.id);
+      a.visible &&= journey >= lp.from && journey <= lp.to;
       anchors.push(a);
     }
-    opt.onFrame(journey, anchors);
+    opt.onFrame({ journey, anchors, detected: detectAt >= 0 && times[detectAt] <= time, lock: l.lock, drone: tile.proj.toCoords(D.x, D.z) });
 
-    // frame timing, for adaptive quality and the checks in the slice report
     fpsWindow += dt;
     fpsFrames++;
     if (fpsWindow >= 1) {
       stats.fps = Math.round(fpsFrames / fpsWindow);
       stats.frameMs = +((fpsWindow / fpsFrames) * 1000).toFixed(1);
-      fpsWindow = 0;
-      fpsFrames = 0;
+      fpsWindow = fpsFrames = 0;
     }
     if (++frames > 90 && quality > 0) {
       slowFrames = dt > 1 / 45 ? slowFrames + 1 : Math.max(slowFrames - 1, 0);
@@ -283,26 +323,21 @@ export async function createFlyover(canvas: HTMLCanvasElement, opt: FlyoverOptio
     }
   };
 
-  // Compile every shader and upload the terrain before the first visible frame, in steps with a
-  // pause between them, so no single step blocks the page for long (Firefox compiles on first draw).
+  // Compile every shader and upload the map before the first visible frame, in steps with a pause
+  // between them, so no single step blocks the page for long (Firefox compiles on first draw).
   place(0, 0);
-  terrain.visible = false;
+  scanNow(0);
   await renderer.compileAsync(scene, camera);
-  renderer.render(scene, camera); // sky, sea and pin
-  await pause();
-  terrain.visible = true;
-  for (const c of terrain.children) c.frustumCulled = false; // draw every chunk once, so all of it uploads
   renderer.render(scene, camera);
-  for (const c of terrain.children) c.frustumCulled = true;
   await pause();
-  composer.render(0); // post-processing shaders
+  composer.render(0);
   await pause();
   opt.onStage("ready");
   clock.connect(document); // pauses the clock while the tab is hidden
   renderer.setAnimationLoop(frame);
 
   return {
-    /** Scroll and touch move the camera by a fraction of the journey. */
+    /** Scroll and touch move the drone by a fraction of the journey. */
     nudge(delta: number) {
       auto = null;
       target = clamp(target + delta, 0, 1);
@@ -311,7 +346,7 @@ export async function createFlyover(canvas: HTMLCanvasElement, opt: FlyoverOptio
     flyTo(to: number) {
       const dist = Math.abs(to - journey);
       if (dist < 1e-3) return;
-      auto = { from: journey, to, t: 0, dur: lerp(2.5, 7, dist) };
+      auto = { from: journey, to, t: 0, dur: lerp(2.5, 8, dist) };
     },
     get journey() {
       return journey;
@@ -321,8 +356,9 @@ export async function createFlyover(canvas: HTMLCanvasElement, opt: FlyoverOptio
       clock.dispose();
       ro.disconnect();
       composer.dispose();
-      scene.traverse((o) => {
-        const m = o as THREE.Mesh;
+      timesTex.dispose();
+      scene.traverse((obj) => {
+        const m = obj as THREE.Mesh;
         m.geometry?.dispose();
         (m.material as THREE.Material | undefined)?.dispose?.();
       });
@@ -332,4 +368,3 @@ export async function createFlyover(canvas: HTMLCanvasElement, opt: FlyoverOptio
 }
 
 export type Flyover = Awaited<ReturnType<typeof createFlyover>>;
-export type { Tile };

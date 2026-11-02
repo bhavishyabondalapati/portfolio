@@ -1,24 +1,31 @@
 "use client";
-// Fun mode: the 3D flyover. A full-screen layer over the plain site with the canvas, the route rail,
-// the panel pinned to each stop's marker, and a "Back to the plain site" button that is always
-// visible and takes keyboard focus first. The scene itself lives in src/engine/flyover/.
+// Fun mode: the 3D flyover, told as a SLAM run. A drone flies the route and its lidar builds the
+// map live; each stop is a landmark the system detects and locks onto, then that section's panel
+// opens. This full-screen layer holds the canvas, the route rail, the corner inset map, the
+// landmark reticle and panel, and a "Back to the plain site" button that is always visible and
+// takes keyboard focus first. The scene itself lives in src/engine/flyover/.
 //
-// Slice 1: the opening over the Bay of Bengal and the first stop, SRM in Kattankulathur.
+// Slice 1: off the Coromandel coast to the first stop, SRM in Kattankulathur.
 import { useEffect, useRef, useState } from "react";
 import { education, route, srmProject, survey } from "@/content";
-import type { Anchor, Flyover } from "@/engine/flyover/createFlyover";
+import type { Flyover, FrameState } from "@/engine/flyover/createFlyover";
 import { stopTarget } from "@/lib/flyover";
-import { formatCoords } from "@/lib/geo";
+import { placeLine } from "@/lib/geo";
+import inset from "@/lib/inset-india.json";
 
 type Stage = "loading" | "preparing" | "ready" | "failed";
 
 const STOP = route[0];
 const SCHOOL = education.find((e) => e.coords.lat === STOP.coords.lat)!;
 const LAST = 1; // the last journey position built so far
-const LABELS = [
-  { id: "bay", text: "Bay of Bengal", coords: { lat: 12.75, lon: 80.9 }, from: 0, to: 0.62 },
-  { id: "chennai", text: "Chennai", coords: { lat: 13.0827, lon: 80.2707 }, from: 0.2, to: 1 },
-];
+const LABELS = [{ id: "bay", text: "Bay of Bengal", coords: { lat: 12.95, lon: 80.62 }, from: 0, to: 1 }];
+const INDIA = route.filter((r) => r.country === "India");
+
+/** Latitude and longitude to the inset's SVG box. */
+const toInset = (c: { lat: number; lon: number }) => ({
+  x: ((c.lon - inset.west) / (inset.east - inset.west)) * inset.width,
+  y: ((inset.north - c.lat) / (inset.north - inset.south)) * inset.height,
+});
 
 export function FunMode({ onExit }: { onExit: () => void }) {
   const back = useRef<HTMLButtonElement>(null);
@@ -26,11 +33,14 @@ export function FunMode({ onExit }: { onExit: () => void }) {
   const root = useRef<HTMLDivElement>(null);
   const panel = useRef<HTMLElement>(null);
   const leader = useRef<HTMLSpanElement>(null);
+  const reticle = useRef<HTMLDivElement>(null);
+  const droneDot = useRef<SVGCircleElement>(null);
   const engine = useRef<Flyover | null>(null);
   const [stage, setStage] = useState<Stage>("loading");
   const [bytes, setBytes] = useState({ loaded: 0, total: 0 });
   const [arrived, setArrived] = useState(false);
   const [atStop, setAtStop] = useState(false);
+  const [lockState, setLockState] = useState<"none" | "detected" | "locked">("none");
 
   // Esc closes; the page behind stops scrolling
   useEffect(() => {
@@ -44,45 +54,67 @@ export function FunMode({ onExit }: { onExit: () => void }) {
     };
   }, [onExit]);
 
-  // start the scene (three.js loads here, in this chunk, only when fun mode opens)
+  // start the scene (three.js loads here, in its own chunk, only when fun mode opens)
   useEffect(() => {
     let disposed = false;
     let fly: Flyover | null = null;
     const labelEls = new Map<string, HTMLElement>();
     root.current?.querySelectorAll<HTMLElement>("[data-anchor]").forEach((el) => labelEls.set(el.dataset.anchor!, el));
+    // the page's side margin, read from the sheet label so the panel lines up with it
+    let gutter = 56;
+    const measure = () => (gutter = root.current?.querySelector(".fun-sheet")?.getBoundingClientRect().left ?? 56);
+    measure();
+    window.addEventListener("resize", measure);
+    const at = (el: HTMLElement, x: number, y: number) => (el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`);
 
-    const place = (a: Anchor) => {
-      const el = labelEls.get(a.id);
-      if (!el) return;
-      el.style.transform = `translate3d(${a.x.toFixed(1)}px, ${a.y.toFixed(1)}px, 0)`;
-      el.dataset.on = a.visible ? "yes" : "no";
+    const onFrame = (s: FrameState) => {
+      root.current?.style.setProperty("--journey", s.journey.toFixed(3));
+      setAtStop(s.journey > 0.98);
+      for (const a of s.anchors.slice(1)) {
+        const el = labelEls.get(a.id);
+        if (!el) continue;
+        at(el, a.x, a.y);
+        el.dataset.on = a.visible ? "yes" : "no";
+      }
+      // the reticle sits on the landmark and closes in as the lock completes
+      const m = s.anchors[0];
+      const r = reticle.current;
+      if (r) {
+        at(r, m.x, m.y);
+        r.style.setProperty("--lock", s.lock.toFixed(3));
+        r.dataset.on = m.visible ? "yes" : "no";
+      }
+      setLockState(s.lock >= 1 ? "locked" : s.detected ? "detected" : "none");
+
+      // the panel is docked on the left, over the sea; a leader line runs from the landmark to it
+      const p = panel.current;
+      const lead = leader.current;
+      if (p && lead) {
+        const x = Math.min(gutter, m.x - 140 - p.offsetWidth);
+        const y = Math.min(Math.max(m.y - 120, 130), window.innerHeight - p.offsetHeight - 240);
+        at(p, x, y);
+        const dx = x + p.offsetWidth - m.x, dy = y + 26 - m.y;
+        lead.style.width = `${Math.hypot(dx, dy).toFixed(1)}px`;
+        lead.style.transform = `translate3d(${m.x.toFixed(1)}px, ${m.y.toFixed(1)}px, 0) rotate(${Math.atan2(dy, dx)}rad)`;
+      }
+
+      const d = droneDot.current;
+      if (d) {
+        const q = toInset(s.drone);
+        d.setAttribute("cx", q.x.toFixed(1));
+        d.setAttribute("cy", q.y.toFixed(1));
+      }
     };
 
     import("@/engine/flyover/createFlyover")
       .then(({ createFlyover }) =>
         createFlyover(canvas.current!, {
-          marker: STOP.coords,
+          landmark: STOP.coords,
           labels: LABELS,
           onBytes: (loaded, total) => setBytes({ loaded, total }),
           onStage: (s) => !disposed && setStage(s),
           onArrive: (a) => !disposed && setArrived(a),
-          onFrame: (journey, anchors) => {
-            root.current?.style.setProperty("--journey", journey.toFixed(3));
-            setAtStop(journey > 0.98);
-            for (const a of anchors) place(a);
-            // the panel is docked on the right; a leader line runs from the pin to it, like a map callout
-            const m = anchors[0];
-            const p = panel.current;
-            const lead = leader.current;
-            if (p && lead) {
-              const x = Math.max(m.x + 120, window.innerWidth * 0.6);
-              const y = Math.min(Math.max(m.y - 60, 120), window.innerHeight - p.offsetHeight - 110);
-              p.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
-              const dx = x - m.x, dy = y + 26 - m.y;
-              lead.style.width = `${Math.hypot(dx, dy).toFixed(1)}px`;
-              lead.style.transform = `translate3d(${m.x.toFixed(1)}px, ${m.y.toFixed(1)}px, 0) rotate(${Math.atan2(dy, dx)}rad)`;
-            }
-          },
+          onFrame,
         }),
       )
       .then((f) => {
@@ -96,12 +128,13 @@ export function FunMode({ onExit }: { onExit: () => void }) {
 
     return () => {
       disposed = true;
+      window.removeEventListener("resize", measure);
       fly?.dispose();
       engine.current = null;
     };
   }, []);
 
-  // scroll, touch and keys drive the camera along the route
+  // scroll, touch and keys drive the drone along the route
   useEffect(() => {
     const el = root.current!;
     const onWheel = (e: WheelEvent) => {
@@ -143,6 +176,7 @@ export function FunMode({ onExit }: { onExit: () => void }) {
   const f = survey.flight;
   const mb = (n: number) => (n / 1e6).toFixed(1);
   const share = bytes.total ? bytes.loaded / bytes.total : 0;
+  const stop = toInset(STOP.coords);
 
   return (
     <div ref={root} className="fun" data-stage={stage} data-arrived={arrived || undefined} role="dialog" aria-modal="true" aria-labelledby="fun-title">
@@ -167,30 +201,33 @@ export function FunMode({ onExit }: { onExit: () => void }) {
         <ol>
           {route.map((r, i) => (
             <li key={r.id}>
-              <button
-                type="button"
-                aria-current={i === 0 && atStop ? "step" : undefined}
-                disabled={i > 0}
-                onClick={() => engine.current?.flyTo(LAST)}
-              >
+              <button type="button" aria-current={i === 0 && atStop ? "step" : undefined} disabled={i > 0} onClick={() => engine.current?.flyTo(LAST)}>
                 <span className="mono">0{i + 1}</span>
                 <strong>{r.place}</strong>
-                <span className="mono">{formatCoords(r.coords, 2)}</span>
+                <span className="mono">
+                  {r.region}, {r.country}
+                </span>
               </button>
             </li>
           ))}
         </ol>
       </nav>
 
-      {/* map labels and the marker label, positioned every frame by the scene */}
+      {/* map labels, positioned every frame by the scene */}
       <div className="fun-anchors" aria-hidden="true">
         {LABELS.map((l) => (
           <span key={l.id} data-anchor={l.id} className={`mono fun-label fun-label-${l.id}`}>
             {l.text}
           </span>
         ))}
-        <span data-anchor="marker" className="mono fun-label fun-label-marker">
-          <b>01</b> {SCHOOL.campus}
+      </div>
+
+      {/* the landmark reticle: four corner brackets that close in when the system locks on */}
+      <div ref={reticle} className="fun-reticle" data-state={lockState} aria-hidden="true">
+        <span className="fun-reticle-box" />
+        <span className="mono fun-reticle-label">
+          <b>Landmark 01 · {lockState === "locked" ? "locked" : "detected"}</b>
+          <span>{placeLine(STOP)}</span>
         </span>
       </div>
 
@@ -200,6 +237,13 @@ export function FunMode({ onExit }: { onExit: () => void }) {
           <b>Stop 01 / 04</b> <span>Education</span>
         </p>
         <h3 id="fun-panel-title">{SCHOOL.school}</h3>
+        <p className="mono fun-panel-place">
+          {placeLine(STOP)
+            .split(" · ")
+            .map((part) => (
+              <span key={part}>{part}</span>
+            ))}
+        </p>
         <p>{SCHOOL.degree}</p>
         <dl>
           <div>
@@ -212,9 +256,7 @@ export function FunMode({ onExit }: { onExit: () => void }) {
           </div>
           <div>
             <dt className="mono">Campus</dt>
-            <dd>
-              {SCHOOL.campus}, {SCHOOL.place.split(",")[0]}
-            </dd>
+            <dd>{SCHOOL.campus}</dd>
           </div>
         </dl>
         {srmProject && (
@@ -223,13 +265,27 @@ export function FunMode({ onExit }: { onExit: () => void }) {
             <p>{srmProject.highlight}</p>
           </div>
         )}
-        <p className="mono fun-panel-coords">{formatCoords(SCHOOL.coords)}</p>
       </section>
       <p className="sr-only" aria-live="polite">
-        {arrived ? `Stop 1 of 4: ${SCHOOL.school}, ${SCHOOL.degree}, GPA ${SCHOOL.gpa}, finished ${SCHOOL.dates}.` : ""}
+        {arrived ? `Stop 1 of 4, ${placeLine(STOP)}: ${SCHOOL.school}, ${SCHOOL.degree}, GPA ${SCHOOL.gpa}, finished ${SCHOOL.dates}.` : ""}
       </p>
 
       <footer className="fun-foot">
+        {/* the corner inset: coastlines from the same NOAA data, the India stops, and the drone */}
+        <figure className="fun-inset" aria-hidden="true">
+          <svg viewBox={`0 0 ${inset.width} ${inset.height}`}>
+            <path className="coast" d={inset.d} />
+            <polyline className="leg" points={INDIA.map((r) => `${toInset(r.coords).x.toFixed(1)},${toInset(r.coords).y.toFixed(1)}`).join(" ")} />
+            {INDIA.map((r) => {
+              const q = toInset(r.coords);
+              return <circle key={r.id} className={r.id === STOP.id && atStop ? "stop is-current" : "stop"} cx={q.x} cy={q.y} r={r.id === STOP.id ? 3.2 : 2.4} />;
+            })}
+            <circle ref={droneDot} className="drone" cx={stop.x} cy={stop.y} r={1.9} />
+          </svg>
+          <figcaption className="mono">
+            <b>{f.inset}</b> · 01 / 04
+          </figcaption>
+        </figure>
         <p className="mono fun-credit">
           <span>{f.exaggeration}</span>
           <span>{f.credit}</span>

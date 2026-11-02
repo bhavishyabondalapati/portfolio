@@ -139,3 +139,38 @@ Screenshots: `docs/screenshots/flyover-slice-*.png`.
 | 3D chunk under 350 KB gzipped | 211 KB (three.js + postprocessing + engine); fun-mode UI chunk 3 KB; the plain page loads neither |
 | Terrain under 3 MB | 0.70 MB |
 | No freeze over 200 ms | Longest main-thread gap while loading and flying: 59–78 ms (WebKit), 42–78 ms (Firefox). It was 214 ms in Firefox before the warm-up was split into steps. |
+
+## Slice 1, rebuilt as a SLAM run (feedback round 1)
+
+The dusk contour flyover above was replaced at your request:
+- **The concept:** a drone flies the route and builds the map live, like ROS/RViz but calmer.
+- **Colours:** navy, off-white for the built map, and orange only for the live scan and the
+  trajectory.
+- **The inset:** a corner map with each stop labelled by city, state, country and coordinates.
+
+Screenshots: `docs/screenshots/flyover-slam-*.png`.
+
+- **The map:** lidar returns on a 250 m lattice, generated only where the drone's 30 km scan
+  ever reaches, on land only (water sends no returns), from the same ETOPO heights.
+  - Each stretch of the flight records when it was scanned, scanning every 0.3 s.
+  - New points appear orange and scattered, then settle onto the lattice and turn off-white over
+    2.6 s.
+  - In the settled map, higher ground, 20 m contour bands and the coastline read brighter.
+  - A beam turning every 2.4 s keeps lighting points orange while the drone hovers.
+- **The trajectory:** an orange line with a pose marker every 3 km, plus the drone (a flat chevron)
+  and a faint line down to the ground.
+- **The landmark:** when SRM comes within range, a reticle appears ("detected"). On arrival it
+  closes in for 0.9 s ("locked"), then a leader line draws and the panel opens.
+- **The camera:** it chases from behind and to the side of the drone, so the trajectory crosses
+  the frame. At the stop it swings round to look south, with the sea on the left; the panel docks
+  over the sea.
+- **The inset:** `scripts/inset.mjs` traces coastlines only from coarse ETOPO (no national
+  borders), with the stops and the drone's position on it.
+- **Loop closure in Boston** is for the Boston slice.
+
+| Target | Result |
+|---|---|
+| 60 fps at 1440 × 900 | 60 fps in WebKit (display-capped), 120 fps in Firefox; quality never stepped down |
+| 3D chunk under 350 KB gzipped | 215 KB; fun-mode UI chunk 7 KB (includes the inset coastline); the plain page loads neither |
+| Terrain under 3 MB | 0.70 MB (the inset adds 8 KB of path) |
+| No freeze over 200 ms | Longest main-thread gap: 47–60 ms (WebKit), 28–75 ms (Firefox) |
