@@ -1218,80 +1218,57 @@ h1 span {
   color: var(--ink-2);
 }
 
-/* the route as a line of stations across the top, like a transit map */
+/* the timeline rail: a vertical line of stops down the left, dates first, then what I did */
 .fun-rail {
   position: absolute;
-  top: 1.1rem;
-  left: 50%;
-  transform: translateX(-50%);
+  left: var(--gutter);
+  top: 6.5rem;
+  width: 15.5rem;
+  max-height: calc(100vh - 6.5rem - 15rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
   opacity: calc(min(1, var(--journey) * 6));
 }
 
 .fun-rail ol {
   list-style: none;
-  display: flex;
-  padding: 0;
   margin: 0;
-}
-
-.fun-rail li {
-  position: relative;
-  width: 10.5rem;
-}
-
-/* the line between stations */
-.fun-rail li + li::before {
-  content: "";
-  position: absolute;
-  top: 1.05rem;
-  right: calc(50% + 10px);
-  width: calc(100% - 20px);
-  height: 1px;
-  background: var(--rule);
+  padding: 0 0 0 0.9rem;
+  border-left: 1px solid var(--rule);
 }
 
 .fun-rail button {
+  position: relative;
   display: grid;
-  justify-items: center;
-  gap: 0.1rem;
   width: 100%;
   min-height: 44px;
-  padding: 1.6rem 0 0.2rem;
+  padding: 0.3rem 0 0.35rem;
   border: 0;
   background: none;
-  color: var(--ink);
+  color: var(--ink-2);
   font: inherit;
+  font-size: 0.84rem;
+  line-height: 1.3;
+  text-align: left;
   cursor: pointer;
-  position: relative;
 }
 
-.fun-rail button > .mono:first-child {
-  position: absolute;
-  top: 0;
-  left: calc(50% + 12px);
-  color: var(--ink-2);
+.fun-rail button .mono {
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
 }
 
-.fun-rail button > :last-child {
-  color: var(--ink-2);
+.fun-rail strong {
+  font-weight: 600;
 }
 
-/* narrower laptops: shorter stations, no coordinates, so the rail clears the corners */
-@media (max-width: 1279px) {
-  .fun-rail li {
-    width: 7.5rem;
-  }
-
-  .fun-rail button > :last-child {
-    display: none;
-  }
-}
-
+/* a diamond on the line for each stop; filled at the current one */
 .fun-rail button::before {
   content: "";
   position: absolute;
-  left: calc(50% - 4px);
-  top: calc(1.05rem - 4px);
+  left: calc(-0.9rem - 4px);
+  top: 0.75rem;
   width: 7px;
   height: 7px;
   border: 1px solid var(--ink-2);
@@ -1299,23 +1276,31 @@ h1 span {
   transform: rotate(45deg);
 }
 
+.fun-rail button[aria-current="step"] {
+  color: var(--ink);
+}
+
 .fun-rail button[aria-current="step"]::before {
-  background: var(--orange);
-  border-color: var(--orange);
+  background: var(--scan);
+  border-color: var(--scan);
 }
 
-.fun-rail button[aria-current="step"] strong {
-  color: var(--orange-text);
+.fun-rail button:hover {
+  color: var(--ink);
 }
 
-.fun-rail button:disabled {
-  cursor: default;
-  color: var(--ink-2);
+/* the plates sit under Boston, smaller */
+.fun-rail .is-plate button {
+  min-height: 30px;
+  padding-block: 0.15rem;
+  font-size: 0.78rem;
 }
 
-.fun-rail strong {
-  font-weight: 700;
-  font-variation-settings: "wdth" 112;
+.fun-rail .is-plate button::before {
+  width: 5px;
+  height: 5px;
+  left: calc(-0.9rem - 3px);
+  top: 0.65rem;
 }
 
 .fun-anchors {
@@ -1552,23 +1537,69 @@ h1 span {
   pointer-events: none;
 }
 
-.fun-transit {
-  position: absolute;
-  left: 50%;
-  bottom: 7.5rem;
-  transform: translateX(-50%);
-  white-space: nowrap;
-  opacity: 0;
-  transition: opacity 0.5s;
-  text-shadow: 0 0 12px #0a1426, 0 0 3px #0a1426;
+/* the HUD: altitude, heading, position and a live scale bar, bottom right */
+.fun-hud-block {
+  display: grid;
+  justify-items: end;
+  gap: 0.75rem;
 }
 
-.fun[data-phase="transit"] .fun-transit {
-  opacity: 1;
+.fun-hud {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0.6rem 0.75rem;
+  min-width: 17rem;
+  border: 1px solid var(--rule);
+  background: rgb(10 20 38 / 0.7);
+  font-size: 0.7rem;
 }
 
-.fun-transit b {
-  font-weight: 600;
+.fun-hud div {
+  display: grid;
+  grid-template-columns: 3.4rem 1fr;
+  align-items: center;
+}
+
+.fun-hud dt {
+  color: var(--ink-2);
+}
+
+.fun-hud dd {
+  margin: 0;
+  color: var(--ink);
+  text-transform: none;
+}
+
+.fun-scale dd {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* the scale bar: alternating segments, as on a printed map */
+.fun-scale i {
+  display: block;
+  height: 5px;
+  width: 110px;
+  border: 1px solid var(--ink);
+  background: linear-gradient(90deg, var(--ink) 0 25%, transparent 25% 50%, var(--ink) 50% 75%, transparent 75%);
+}
+
+.fun[data-phase="transit"] .fun-scale {
+  visibility: hidden;
+}
+
+.fun-panel-org {
+  margin-top: 0.3rem;
+  color: var(--ink-2);
+}
+
+.fun-panel .stack {
+  margin-top: 0.8rem;
+  color: var(--ink-2);
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 .fun-panel-sheet {

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { alongGreatCircle, decodeTerrarium, greatCircleKm, lockAt, projector, revealGrid, sampleGrid, stopTarget, type TileMeta } from "../src/lib/flyover.ts";
+import { alongGreatCircle, decodeTerrarium, dwellEase, greatCircleKm, lockAt, projector, revealGrid, sampleGrid, stopTarget, type TileMeta } from "../src/lib/flyover.ts";
 import { route } from "../src/content.ts";
 
 const india: TileMeta = JSON.parse(readFileSync(new URL("../public/terrain/india.json", import.meta.url), "utf8"));
@@ -76,4 +76,18 @@ test("the flight to Boston is the great circle from Ongole (about 12,937 km)", (
   assert.ok(Math.abs(start.lat - route[2].coords.lat) < 1e-9 && Math.abs(end.lon - route[3].coords.lon) < 1e-9);
   // halfway is far north: the shortest way from India to Boston crosses high latitudes
   assert.ok(alongGreatCircle(route[2].coords, route[3].coords, 0.5).lat > 55);
+});
+
+test("the drone holds briefly at a stop, then eases on, with no jumps", () => {
+  assert.equal(dwellEase(0, true, true), 0);
+  assert.equal(dwellEase(0.08, true, true), 0); // still holding at the stop
+  assert.equal(dwellEase(0.5, true, true), 0.5);
+  assert.equal(dwellEase(0.95, true, true), 1); // already holding at the next stop
+  let prev = 0;
+  for (let i = 1; i <= 200; i++) {
+    const v = dwellEase(i / 200, true, true);
+    assert.ok(v >= prev && v - prev < 0.02, `smooth at ${i}`); // never backwards, never a leap
+    prev = v;
+  }
+  assert.equal(dwellEase(0.5, false, false), 0.5);
 });

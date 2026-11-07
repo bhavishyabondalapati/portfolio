@@ -1,16 +1,15 @@
-// Loads a terrain tile (Terrarium PNG from scripts/terrain.mjs) and turns the part the drone
-// scans into a lidar-style point cloud.
+// Loads a terrain tile (Terrarium PNG from scripts/terrain.mjs) and builds the terrain mesh the
+// drone reveals: real heights drawn 12 times taller, the sea flat at 0 m, imagery coordinates, and
+// for each vertex the first path sample whose lidar scan reaches it.
 import * as THREE from "three";
 import { EXAGGERATION, decodeTerrarium, projector, revealGrid, sampleGrid, type TileMeta } from "@/lib/flyover";
-import { mulberry32 } from "../util";
 
 export type Tile = { meta: TileMeta; heights: Float32Array; proj: ReturnType<typeof projector> };
 
-/** Downloads the tile, reporting bytes as they arrive, and decodes its heights. */
-export async function loadTile(name: string, onBytes: (loaded: number, total: number) => void): Promise<Tile> {
-  const meta: TileMeta = await (await fetch(`/terrain/${name}.json`)).json();
-  const res = await fetch(`/terrain/${name}.png`);
-  if (!res.ok || !res.body) throw new Error(`terrain ${name}: ${res.status}`);
+/** Downloads a file, reporting bytes as they arrive. */
+export async function fetchBytes(url: string, onBytes: (loaded: number, total: number) => void) {
+  const res = await fetch(url);
+  if (!res.ok || !res.body) throw new Error(`${url}: ${res.status}`);
   const total = Number(res.headers.get("content-length")) || 0;
   const reader = res.body.getReader();
   const parts: Uint8Array[] = [];
@@ -22,11 +21,15 @@ export async function loadTile(name: string, onBytes: (loaded: number, total: nu
     loaded += value.length;
     onBytes(loaded, total);
   }
+  return new Blob(parts as BlobPart[]);
+}
+
+/** Downloads the tile and decodes its heights. */
+export async function loadTile(name: string, onBytes: (loaded: number, total: number) => void): Promise<Tile> {
+  const meta: TileMeta = await (await fetch(`/terrain/${name}.json`)).json();
+  const blob = await fetchBytes(`/terrain/${name}.png`, onBytes);
   // no colour conversion: the pixels are numbers, not colours
-  const bmp = await createImageBitmap(new Blob(parts as BlobPart[], { type: "image/png" }), {
-    colorSpaceConversion: "none",
-    premultiplyAlpha: "none",
-  });
+  const bmp = await createImageBitmap(blob, { colorSpaceConversion: "none", premultiplyAlpha: "none" });
   const c = document.createElement("canvas");
   c.width = bmp.width;
   c.height = bmp.height;
@@ -37,6 +40,21 @@ export async function loadTile(name: string, onBytes: (loaded: number, total: nu
   return { meta, heights: decodeTerrarium(px, meta.width * meta.height), proj: projector(meta) };
 }
 
+/**
+ * Downloads a colour image as a texture. Not flipped: the image's top row (north) is texture
+ * row 0, so v = 0 is north in the mesh and globe coordinates.
+ */
+export async function loadImagery(name: string, onBytes: (loaded: number, total: number) => void) {
+  const blob = await fetchBytes(`/terrain/imagery-${name}.jpg`, onBytes);
+  const bmp = await createImageBitmap(blob);
+  const tex = new THREE.Texture(bmp);
+  tex.flipY = false;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 /** Height of the terrain in metres at a local x, z (km). */
 export function metresAt(tile: Tile, x: number, z: number) {
   const { meta, proj } = tile;
@@ -45,60 +63,89 @@ export function metresAt(tile: Tile, x: number, z: number) {
   return sampleGrid(tile.heights, meta.width, meta.height, col, row);
 }
 
-/** Height of the drawn terrain (km, exaggerated) at a local x, z. */
-export const heightAt = (tile: Tile, x: number, z: number) => (metresAt(tile, x, z) / 1000) * EXAGGERATION;
+/** Height of the drawn terrain (km, exaggerated; the sea is flat at 0) at a local x, z. */
+export const heightAt = (tile: Tile, x: number, z: number) => (Math.max(metresAt(tile, x, z), 0) / 1000) * EXAGGERATION;
 
-const CELL = 1; // km
 const pause = () => new Promise((r) => setTimeout(r, 0));
 
 /**
- * The lidar returns along a flight path: `perSide` x `perSide` per square km on a regular
- * lattice, everywhere the drone's scan ever reaches, on land only (water sends no returns). Each
- * point carries the index of the first path sample whose scan reached it (aReveal), a hillshade
- * value (aShade) and a random seed for its scatter. Built in slices with pauses between them, so
- * a long flight never blocks the page for long.
+ * The terrain mesh: one grid of vertices shared by 4 x 4 chunk meshes (one GPU copy, but chunks
+ * outside the view are skipped). Built in slices with pauses, so it never blocks the page for long.
  */
-export async function buildCloud(tile: Tile, path: { x: number; z: number }[], range: number, perSide: number, material: THREE.Material) {
-  const { proj } = tile;
-  const grid = { x0: -proj.size.x / 2, z0: -proj.size.z / 2, cols: Math.floor(proj.size.x / CELL), rows: Math.floor(proj.size.z / CELL), cell: CELL };
+export async function buildTerrain(tile: Tile, path: { x: number; z: number }[], range: number, material: THREE.Material) {
+  const { meta, heights, proj } = tile;
+  const w = meta.width, rows = meta.height;
+  const dx = proj.size.x / (w - 1), dz = proj.size.z / (rows - 1);
+  const x0 = -proj.size.x / 2, z0 = -proj.size.z / 2;
+  const k = EXAGGERATION / 1000;
+  const grid = { x0, z0, cols: Math.ceil(proj.size.x), rows: Math.ceil(proj.size.z), cell: 1 };
   const reveal = revealGrid(path, 1, range, grid);
-  let cells = 0;
-  for (let k = 0; k < reveal.length; k++) if (reveal[k] !== Infinity) cells++;
-  const max = cells * perSide * perSide;
-  const pos = new Float32Array(max * 3), rev = new Float32Array(max), shade = new Float32Array(max), seed = new Float32Array(max);
+  await pause();
 
-  const rand = mulberry32(42);
-  const light = new THREE.Vector3(-0.6, 0.75, -0.3).normalize(); // from the north-west, as on printed relief
-  const n = new THREE.Vector3();
-  const d = 0.25;
-  let count = 0, done = 0;
-  for (let k = 0; k < reveal.length; k++) {
-    if (reveal[k] === Infinity) continue;
-    const c = k % grid.cols, r = Math.floor(k / grid.cols);
-    for (let i = 0; i < perSide * perSide; i++) {
-      // a regular lattice: the clean map the scattered returns settle into
-      const x = grid.x0 + (c + ((i % perSide) + 0.5) / perSide) * CELL;
-      const z = grid.z0 + (r + (Math.floor(i / perSide) + 0.5) / perSide) * CELL;
-      if (metresAt(tile, x, z) <= 0) continue;
-      const gx = (heightAt(tile, x + d, z) - heightAt(tile, x - d, z)) / (2 * d);
-      const gz = (heightAt(tile, x, z + d) - heightAt(tile, x, z - d)) / (2 * d);
-      n.set(-gx, 1, -gz).normalize();
-      pos[count * 3] = x;
-      pos[count * 3 + 1] = heightAt(tile, x, z);
-      pos[count * 3 + 2] = z;
-      rev[count] = reveal[k];
-      shade[count] = Math.max(n.dot(light), 0);
-      seed[count] = rand();
-      count++;
+  const n = w * rows;
+  const pos = new Float32Array(n * 3), nrm = new Int8Array(n * 3), uv = new Float32Array(n * 2);
+  const hm = new Float32Array(n), rev = new Float32Array(n);
+  const land = (i: number) => Math.max(heights[i], 0) * k;
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < w; c++) {
+      const i = r * w + c;
+      const x = x0 + c * dx, z = z0 + r * dz;
+      pos[i * 3] = x;
+      pos[i * 3 + 1] = land(i);
+      pos[i * 3 + 2] = z;
+      // normal from the slope between neighbours, packed as 8-bit integers
+      const hl = land(r * w + Math.max(c - 1, 0)), hr = land(r * w + Math.min(c + 1, w - 1));
+      const hu = land(Math.max(r - 1, 0) * w + c), hd = land(Math.min(r + 1, rows - 1) * w + c);
+      const nx = -(hr - hl) / (2 * dx), nz = -(hd - hu) / (2 * dz);
+      const len = Math.hypot(nx, 1, nz);
+      nrm[i * 3] = Math.round((nx / len) * 127);
+      nrm[i * 3 + 1] = Math.round((1 / len) * 127);
+      nrm[i * 3 + 2] = Math.round((nz / len) * 127);
+      uv[i * 2] = c / (w - 1);
+      uv[i * 2 + 1] = r / (rows - 1);
+      hm[i] = heights[i];
+      const cell = Math.min(Math.floor(z - z0), grid.rows - 1) * grid.cols + Math.min(Math.floor(x - x0), grid.cols - 1);
+      rev[i] = reveal[cell] === Infinity ? -1 : reveal[cell];
     }
-    if (++done % 4000 === 0) await pause();
+    if (r % 120 === 0) await pause();
   }
-  const geo = new THREE.BufferGeometry();
-  geo.setAttribute("position", new THREE.BufferAttribute(pos.subarray(0, count * 3), 3));
-  geo.setAttribute("aReveal", new THREE.BufferAttribute(rev.subarray(0, count), 1));
-  geo.setAttribute("aShade", new THREE.BufferAttribute(shade.subarray(0, count), 1));
-  geo.setAttribute("aSeed", new THREE.BufferAttribute(seed.subarray(0, count), 1));
-  const points = new THREE.Points(geo, material);
-  points.frustumCulled = false; // one cloud; the vertex shader hides what isn't scanned yet
-  return points;
+  const attrs = {
+    position: new THREE.BufferAttribute(pos, 3),
+    normal: new THREE.BufferAttribute(nrm, 3, true),
+    uv: new THREE.BufferAttribute(uv, 2),
+    aH: new THREE.BufferAttribute(hm, 1),
+    aReveal: new THREE.BufferAttribute(rev, 1),
+  };
+
+  const group = new THREE.Group();
+  const N = 4;
+  for (let cy = 0; cy < N; cy++) {
+    for (let cx = 0; cx < N; cx++) {
+      const c0 = Math.floor((cx * (w - 1)) / N), c1 = Math.floor(((cx + 1) * (w - 1)) / N);
+      const r0 = Math.floor((cy * (rows - 1)) / N), r1 = Math.floor(((cy + 1) * (rows - 1)) / N);
+      const index = new Uint32Array((c1 - c0) * (r1 - r0) * 6);
+      let m = 0, lo = Infinity, hi = -Infinity;
+      for (let r = r0; r < r1; r++) {
+        for (let c = c0; c < c1; c++) {
+          const a = r * w + c, b = a + 1, d = a + w, e = d + 1;
+          index[m++] = a; index[m++] = d; index[m++] = b;
+          index[m++] = b; index[m++] = d; index[m++] = e;
+        }
+      }
+      for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
+        const y = pos[(r * w + c) * 3 + 1];
+        if (y < lo) lo = y;
+        if (y > hi) hi = y;
+      }
+      const geo = new THREE.BufferGeometry();
+      for (const [key, a] of Object.entries(attrs)) geo.setAttribute(key, a);
+      geo.setIndex(new THREE.BufferAttribute(index, 1));
+      // bounds from this chunk's own part of the grid (the shared attributes cover the whole tile)
+      const box = new THREE.Box3(new THREE.Vector3(x0 + c0 * dx, lo, z0 + r0 * dz), new THREE.Vector3(x0 + c1 * dx, hi, z0 + r1 * dz));
+      geo.boundingBox = box;
+      geo.boundingSphere = box.getBoundingSphere(new THREE.Sphere());
+      group.add(new THREE.Mesh(geo, material));
+    }
+  }
+  return group;
 }

@@ -46,12 +46,12 @@ src/components/Sections.tsx       Sheets 01 to 06: experience, plates, coursewor
 src/components/PlateChart.tsx     Small charts drawn from real numbers (bars, or a numbered process)
 src/components/Survey.tsx         Theme switch, the "Fly the survey" button, and loading the 3D mode on request
 src/components/FunMode.tsx        The 3D overlay: route rail, inset map, landmark reticle, stop panels, controls
-src/engine/flyover/createFlyover.ts  Renderer and journey: legs, scans, landmark locks, loop closure, camera
+src/engine/flyover/createFlyover.ts  Renderer and journey: legs, scans, landmark locks, loop closure, camera and motion
 src/engine/flyover/route.ts       The flight plan: stops, camera framings and waypoints
-src/engine/flyover/leg.ts         One mapped leg: path, lidar point cloud, trajectory, pose markers, landmarks
-src/engine/flyover/globe.ts       The flight to Boston: dotted globe, graticule and great-circle trajectory
-src/engine/flyover/terrain.ts     Loads elevation tiles and builds the lattice point cloud from them
-src/engine/flyover/shaders.ts     GLSL for the points (reveal, settle, live beam) and the reference grid
+src/engine/flyover/leg.ts         One leg: path, the terrain its scan reveals, trajectory, pose markers, landmarks
+src/engine/flyover/globe.ts       The flight to Boston: Blue Marble globe at dusk and the great-circle trajectory
+src/engine/flyover/terrain.ts     Loads elevation tiles and imagery, and builds the terrain mesh
+src/engine/flyover/shaders.ts     GLSL: dusk sky, terrain (reveal, contours, graticule, live scan) and globe
 src/engine/util.ts                Small maths helpers (seeded random, damping, easing)
 src/lib/flyover.ts                Pure maths: projection, height decoding, reveal order, lock timing, great circles
 src/lib/geo.ts                    Coordinate and place-label formatting
@@ -61,10 +61,12 @@ src/lib/inset-india.json          Coastline for the India inset map (generated)
 src/lib/inset-world.json          Coastline for the world inset map (generated)
 
 scripts/terrain.mjs               Downloads ETOPO tiles from NOAA ERDDAP and packs them as PNGs
+scripts/imagery.mjs               Downloads NASA Blue Marble imagery for each tile and the globe (NASA GIBS)
 scripts/inset.mjs                 Traces inset coastlines from coarse ETOPO
 scripts/contours.mjs              Generates the hero's contour lines (public/contours.svg)
 
-public/terrain/*.png, *.json      Elevation tiles (India, Boston, world) and their bounds
+public/terrain/*.png, *.json      Elevation tiles (India, Boston) and their bounds
+public/terrain/imagery-*.jpg      Blue Marble imagery draped over the terrain and the globe
 public/contours.svg               The hero's topographic lines
 public/og.png                     Social preview image (1200 x 630)
 public/work/*                     Project figures and video from my own repositories
@@ -132,6 +134,7 @@ To refresh the elevation data (not needed to run the site):
 
 ```bash
 node scripts/terrain.mjs
+node scripts/imagery.mjs
 node scripts/inset.mjs india && node scripts/inset.mjs world
 ```
 

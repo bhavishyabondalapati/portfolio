@@ -1,9 +1,9 @@
 // The flight plan: where each stop is, how the camera frames it, and the waypoints between stops.
 // Journey positions are whole numbers at stops: 0 is the start over the Bay of Bengal,
-// 1 Chennai, 2 Hyderabad, 3 Ongole, 4 Boston (Northeastern), 5 to 9 the five project plates,
-// 10 the overview (coursework and earlier work) and 11 contact.
+// 1 Chennai, 2 Hyderabad, 3 Ongole, 4 Boston (Northeastern), 5 to 10 the six project plates,
+// 11 the overview (coursework and earlier work) and 12 contact.
 import type { Coords } from "@/content";
-import { route } from "@/content";
+import { featured, route } from "@/content";
 
 export type LegName = "india" | "boston";
 
@@ -11,50 +11,57 @@ export type StopShot = {
   leg: LegName;
   /** what the stop is centred on */
   at: Coords;
-  /** the direction the camera looks at the hold, in degrees from north (90 = east) */
-  bearing: number;
-  /** horizontal distance from camera to the stop, and height above the ground there (km) */
-  dist: number;
-  up: number;
-  /** how far (km) the view is shifted sideways, so the stop sits opposite the panel */
-  aim: number;
-  panel: "left" | "right";
   /** a landmark the system detects and locks onto (false for the closing overview shots) */
   landmark: boolean;
   /** the drone's hover height above the ground (km) */
   hover: number;
+  /**
+   * The aerial overview the camera pulls back to: `back` km behind the stop along the drone's
+   * approach, `up` km above it, with the view shifted `aim` km sideways so the stop sits left of
+   * centre and the panel has the right side.
+   */
+  back: number;
+  up: number;
+  aim: number;
 };
-
-export const LAST = 11;
 
 /** Where the India leg ends and the Boston leg begins; between them is the flight over the globe. */
 export const TRANSIT = { from: 3.3, to: 3.75 };
 
-const india = (at: Coords, bearing: number, panel: "left" | "right"): StopShot => ({
-  leg: "india", at, bearing, dist: 30, up: 13, aim: 6, panel, landmark: true, hover: 3.4,
-});
-const plate = (at: Coords): StopShot => ({
-  leg: "boston", at, bearing: 315, dist: 15, up: 6.5, aim: 3.5, panel: "right", landmark: true, hover: 2.2,
-});
+const city = (leg: LegName, at: Coords): StopShot => ({ leg, at, landmark: true, hover: leg === "india" ? 3.4 : 2.6, back: 24, up: 17, aim: 7 });
+const plate = (at: Coords): StopShot => ({ leg: "boston", at, landmark: true, hover: 2.2, back: 13, up: 9, aim: 4 });
+
+/** One harbour waypoint per featured plate, along the shore south-east of the campus. */
+const PLATE_WAYPOINTS: Coords[] = [
+  { lat: 42.3505, lon: -71.0465 }, // Fort Point
+  { lat: 42.3378, lon: -71.0123 }, // Castle Island
+  { lat: 42.3155, lon: -71.0345 }, // Columbia Point
+  { lat: 42.2935, lon: -71.0145 }, // Squantum
+  { lat: 42.262, lon: -70.995 }, // Merrymount
+  { lat: 42.268, lon: -70.944 }, // Houghs Neck
+];
+if (PLATE_WAYPOINTS.length < featured.length) throw new Error("add a harbour waypoint for every featured plate");
+
+export const FIRST_PLATE = 5;
+export const PLATES = featured.length;
+export const OVERVIEW = FIRST_PLATE + PLATES;
+export const LAST = OVERVIEW + 1;
 
 export const STOPS: Record<number, StopShot> = {
-  1: india(route[0].coords, 182, "left"), // the coast recedes on the left; the panel sits over the sea
-  2: india(route[1].coords, 0, "right"),
-  3: india(route[2].coords, 0, "right"), // the sea is to the east, on the right, under the panel
-  4: { leg: "boston", at: route[3].coords, bearing: 282, dist: 24, up: 10, aim: 5, panel: "right", landmark: true, hover: 2.6 },
-  // the five project plates: waypoints along the harbour shore, south-east of the campus
-  5: plate({ lat: 42.3505, lon: -71.0465 }),
-  6: plate({ lat: 42.3378, lon: -71.0123 }),
-  7: plate({ lat: 42.3155, lon: -71.0345 }),
-  8: plate({ lat: 42.2935, lon: -71.0145 }),
-  9: plate({ lat: 42.262, lon: -70.995 }),
+  1: city("india", route[0].coords),
+  2: city("india", route[1].coords),
+  3: city("india", route[2].coords),
+  4: city("boston", route[3].coords),
+  ...Object.fromEntries(featured.map((_, i) => [FIRST_PLATE + i, plate(PLATE_WAYPOINTS[i])])),
   // rising over the harbour to see the whole map, then contact
-  10: { leg: "boston", at: { lat: 42.32, lon: -71.03 }, bearing: 300, dist: 52, up: 28, aim: 9, panel: "right", landmark: false, hover: 10 },
-  11: { leg: "boston", at: { lat: 42.33, lon: -71.05 }, bearing: 255, dist: 48, up: 26, aim: 9, panel: "left", landmark: false, hover: 11 },
+  [OVERVIEW]: { leg: "boston", at: { lat: 42.31, lon: -71.0 }, landmark: false, hover: 9, back: 46, up: 30, aim: 12 },
+  [LAST]: { leg: "boston", at: { lat: 42.33, lon: -71.04 }, landmark: false, hover: 10, back: 44, up: 28, aim: 12 },
 };
 
 /** A waypoint (with an absolute height in km) or a stop the drone hovers at. */
 export type PathEntry = { at: Coords; alt: number } | { stop: number };
+
+const range = (from: number, to: number) => Array.from({ length: to - from + 1 }, (_, i) => from + i);
 
 export const PATHS: Record<LegName, PathEntry[]> = {
   india: [
@@ -69,26 +76,19 @@ export const PATHS: Record<LegName, PathEntry[]> = {
     { at: { lat: 17.0, lon: 79.25 }, alt: 14 },
     { at: { lat: 16.1, lon: 79.8 }, alt: 13 },
     { stop: 3 },
-    { at: { lat: 15.55, lon: 80.45 }, alt: 9 },
-    { at: { lat: 15.65, lon: 81.4 }, alt: 22 },
+    { at: { lat: 15.55, lon: 80.45 }, alt: 12 },
+    { at: { lat: 15.65, lon: 81.4 }, alt: 30 },
   ],
   boston: [
-    { at: { lat: 42.28, lon: -70.62 }, alt: 9 },
-    { at: { lat: 42.32, lon: -70.82 }, alt: 6 },
+    { at: { lat: 42.28, lon: -70.62 }, alt: 24 },
+    { at: { lat: 42.32, lon: -70.82 }, alt: 9 },
     { at: { lat: 42.345, lon: -70.98 }, alt: 4 },
-    { stop: 4 },
-    { stop: 5 },
-    { stop: 6 },
-    { stop: 7 },
-    { stop: 8 },
-    { stop: 9 },
-    { stop: 10 },
-    { stop: 11 },
+    ...range(4, LAST).map((stop) => ({ stop })),
   ],
 };
 
 /** Which journey positions belong to each leg, in order: the stops, plus where the leg starts and ends. */
 export const LEG_SPAN: Record<LegName, { start: number; end: number; stops: number[] }> = {
   india: { start: 0, end: TRANSIT.from, stops: [1, 2, 3] },
-  boston: { start: TRANSIT.to, end: LAST, stops: [4, 5, 6, 7, 8, 9, 10, 11] },
+  boston: { start: TRANSIT.to, end: LAST, stops: range(4, LAST) },
 };

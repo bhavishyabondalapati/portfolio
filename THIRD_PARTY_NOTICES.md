@@ -49,7 +49,7 @@ Archivo and IBM Plex Mono, SIL Open Font License 1.1, served from this site by `
 
 ## Elevation data
 
-`public/terrain/*` (India, Boston and world tiles, made by `scripts/terrain.mjs`) and the
+`public/terrain/*.png` and `*.json` (India and Boston tiles, made by `scripts/terrain.mjs`) and the
 coastlines in `src/lib/inset-india.json` and `src/lib/inset-world.json` (made by
 `scripts/inset.mjs`) come from:
 
@@ -63,6 +63,15 @@ employees or contractors, makes any warranty, express or implied, including warr
 merchantability and fitness for a particular purpose, or assumes any legal liability for the
 accuracy, completeness, or usefulness, of this information." The flyover draws heights 12 times
 taller than they are and says so on screen.
+
+## Imagery
+
+`public/terrain/imagery-*.jpg` (made by `scripts/imagery.mjs`) is NASA Blue Marble Next Generation
+(NASA Earth Observatory), fetched from NASA's Global Imagery Browse Services (GIBS). NASA imagery is
+generally not subject to copyright in the United States; NASA asks to be acknowledged as the source.
+GIBS acknowledgement: "We acknowledge the use of imagery provided by services from NASA's Global
+Imagery Browse Services (GIBS), part of NASA's Earth Science Data and Information System (ESDIS)."
+The flyover credits it on screen.
 
 ## Images
 

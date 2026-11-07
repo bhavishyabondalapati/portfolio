@@ -106,3 +106,17 @@ export function alongGreatCircle(a: Coords, b: Coords, t: number): Coords {
   const p = u.map((x, i) => x * k1 + v[i] * k2);
   return { lat: Math.asin(p[2]) / RAD, lon: Math.atan2(p[1], p[0]) / RAD };
 }
+
+/**
+ * Progress along one stretch of the flight (0 to 1) for a journey fraction f across it. At an end
+ * that is a stop, the drone holds still for `hold` of the stretch and then eases in or out, so
+ * scrolling through a stop slows down, pauses briefly and speeds up again, with no snap.
+ */
+export function dwellEase(f: number, startStop: boolean, endStop: boolean, hold = 0.12) {
+  const a = startStop ? hold : 0, b = endStop ? hold : 0;
+  const u = Math.min(Math.max((f - a) / (1 - a - b), 0), 1);
+  if (startStop && endStop) return u * u * u * (u * (u * 6 - 15) + 10); // smootherstep
+  if (startStop) return u * u;
+  if (endStop) return 1 - (1 - u) * (1 - u);
+  return u;
+}

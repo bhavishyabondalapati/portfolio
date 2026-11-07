@@ -493,8 +493,8 @@ export const survey = {
   // Words inside the 3D flyover.
   flight: {
     title: "The survey, flown",
-    subtitle: "A drone maps the route from Chennai to Boston, in the order it happened",
-    hint: "Scroll, or press the down arrow, to fly and map",
+    subtitle: "A drone flies from Chennai to Boston in the order it happened, and its scan reveals the land",
+    hint: "Scroll to fly; the down arrow jumps to the next stop",
     next: "Next stop",
     previous: "Back to the start",
     loading: "Loading terrain",
@@ -504,6 +504,7 @@ export const survey = {
     insetWorld: "To Boston",
     exaggeration: "Vertical exaggeration ×12",
     credit: "Terrain: NOAA NCEI, ETOPO 2022 15 Arc-Second Global Relief Model, doi:10.25921/fd45-gt74",
+    imageryCredit: "Imagery: NASA Blue Marble Next Generation (NASA Earth Observatory), via NASA GIBS",
     failed: "The 3D view could not start on this device.",
   },
   // The map legend on the first screen.
