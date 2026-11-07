@@ -1,0 +1,11 @@
+# The Vercel CLI uploads this folder as it is, so keep private and local files out of the upload.
+.env*
+!.env.example
+docs/*.pdf
+docs/references/
+.playwright-mcp/
+.taste-skill/
+.impeccable/
+.next/
+out/
+node_modules/

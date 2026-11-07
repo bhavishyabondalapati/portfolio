@@ -16,3 +16,7 @@ docs/references/
 .impeccable/critique/
 # Resumes contain a phone number and personal details; never commit them
 docs/*.pdf
+# Vercel CLI link and its short-lived token
+.vercel
+.env*
+!.env.example
