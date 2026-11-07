@@ -688,6 +688,35 @@ h1 span {
   font-size: 0.98rem;
 }
 
+/* unfinished projects: a quiet list under the plates, one line each */
+.in-progress {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+}
+
+.in-progress h3 {
+  color: var(--ink-2);
+}
+
+.in-progress ul {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+
+.in-progress li {
+  padding: 0.35rem 0;
+}
+
+.in-progress a {
+  font-weight: 600;
+}
+
+.in-progress span {
+  color: var(--ink-2);
+}
+
 /* "Read more": the details behind a headline, expanded in place */
 .more {
   border-top: 1px solid var(--rule);

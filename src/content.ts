@@ -226,7 +226,10 @@ export const featured: FeaturedProject[] = [
       "Scanned pages are harder: 279 of 292 fields right (96%), with the 13 misses traced to damaged OCR text or empty answers.",
     ],
     stack: ["Python", "FastAPI", "Celery", "Redis", "Postgres", "Docling", "Anthropic API", "Next.js", "Docker Compose"],
-    links: [{ label: "Code on GitHub", href: `${GH}/lexintake` }],
+    links: [
+      { label: "Code on GitHub", href: `${GH}/lexintake` },
+      { label: "AWS version", href: `${GH}/lexintake-aws` },
+    ],
     media: [
       {
         src: "/work/lexintake-review.webp",
@@ -376,12 +379,33 @@ export const earlierWork: SecondaryProject[] = [
   },
 ];
 
+/** Unfinished projects: one line each, no plate until they have measured results. */
+export const inProgress: { name: string; oneLine: string; href: string }[] = [
+  {
+    name: "ImpactLens",
+    oneLine: "Flood and crop impact from before and after Sentinel-2 imagery, rebuilding my aerial internship work on public data.",
+    href: `${GH}/impactlens`,
+  },
+];
+
 export const otherWork: ListedProject[] = [
   {
     name: "Facial expression recognition",
     oneLine: "Soft labels from 10 annotators matched hard-label accuracy (82.5 to 82.9%) and cut KL divergence to human votes by 59 to 78%.",
     stack: ["PyTorch", "ResNet18", "OpenCV"],
     href: `${GH}/facial-expression-recognition`,
+  },
+  {
+    name: "LexIntake on AWS",
+    oneLine: "LexIntake rebuilt event-driven on AWS (S3, EventBridge, Step Functions, Lambda, all Terraform), pausing for a person when needed; a clean NDA auto-approves in about 21 seconds.",
+    stack: ["Step Functions", "Lambda", "Terraform"],
+    href: `${GH}/lexintake-aws`,
+  },
+  {
+    name: "Bioreactor batch monitor",
+    oneLine: "SPC limits and PCA Hotelling's T² on simulated bioreactor batches: 3 of 3 injected faults caught, with 95.8% of alarms real.",
+    stack: ["Python", "SQLite", "scikit-learn"],
+    href: `${GH}/bioreactor-batch-monitor`,
   },
   {
     name: "Racket IMU motion inference",

@@ -79,9 +79,9 @@ test("the house and the kitten are gone from the content", () => {
   assert.equal(/house cat|kitten says|sword/i.test(allText), false);
 });
 
-test("no links to private repos (bioreactor) and the team Kambaz links are present", () => {
-  const all = JSON.stringify(content);
-  assert.ok(!/bioreactor/i.test(all));
+test("unfinished work stays off the plates, and the team Kambaz links are present", () => {
+  const plates = content.featured.map((p) => p.slug);
+  for (const w of content.inProgress) assert.ok(!plates.includes(w.name.toLowerCase()), w.name);
   const kambaz = content.coursework.find((c) => c.slug === "kambaz")!;
   assert.ok(kambaz.links.some((l) => l.href.endsWith("/kambaz-lms-web")));
   assert.ok(kambaz.links.some((l) => l.href.endsWith("/kambaz-lms-api")));

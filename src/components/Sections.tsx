@@ -7,6 +7,7 @@ import {
   education,
   experience,
   featured,
+  inProgress,
   otherWork,
   person,
   skills,
@@ -203,6 +204,21 @@ export function Sections() {
               <Plate key={p.slug} p={p} n={i + 1} />
             ))}
           </div>
+          {inProgress.length > 0 && (
+            <div className="in-progress">
+              <h3 className="mono">In progress</h3>
+              <ul>
+                {inProgress.map((w) => (
+                  <li key={w.name}>
+                    <a href={w.href} {...ext}>
+                      {w.name}
+                    </a>{" "}
+                    <span>{w.oneLine}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <aside className="invite fly-only" aria-labelledby="invite-title">
             <svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M4 46c10-6 16-2 24-8s14-14 32-10" />
