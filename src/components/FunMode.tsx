@@ -30,7 +30,7 @@ const plateOf = (k: number) => featured[k - FIRST_PLATE];
 
 /** The timeline rail: each stop with its dates and what I did there, then the plates. */
 const TIMELINE: { stop: number; when: string; what: string; where: string }[] = [
-  { stop: 1, when: `Finished ${SCHOOL(route[0].coords.lat).dates}`, what: "B.Tech, CSE (AI and ML), SRM", where: route[0].place },
+  { stop: 1, when: SCHOOL(route[0].coords.lat).dates, what: "B.Tech, CSE (AI and ML), SRM", where: route[0].place },
   { stop: 2, when: JOB(route[1].coords.lat).dates, what: `${JOB(route[1].coords.lat).role}, ${JOB(route[1].coords.lat).company}`, where: route[1].place },
   { stop: 3, when: JOB(route[2].coords.lat).dates, what: `${JOB(route[2].coords.lat).role}, ${JOB(route[2].coords.lat).company.replace(" Pvt. Ltd.", "")}`, where: route[2].place },
   { stop: 4, when: SCHOOL(route[3].coords.lat).dates, what: "MS Computer Science, Northeastern", where: route[3].place },
@@ -439,7 +439,7 @@ function StopPanel({ k, onExit }: { k: number; onExit: () => void }) {
             <dd>{s.gpa}</dd>
           </div>
           <div>
-            <dt className="mono">{k === 1 ? "Finished" : "Complete"}</dt>
+            <dt className="mono">Dates</dt>
             <dd>{s.dates}</dd>
           </div>
           {"campus" in s && s.campus && (

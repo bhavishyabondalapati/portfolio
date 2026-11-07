@@ -39,15 +39,14 @@ behind the `NEXT_PUBLIC_FLYOVER` flag (off by default), so the plain site can sh
      position (lat/lon).
 3. **The timeline is the point.**
    - The rail shows years, plus the role or project at each stop:
-     - B.Tech, SRM, finished Jan. 2025 (start year to confirm)
+     - B.Tech, SRM, 2021 to Jan. 2025
      - Mouri Tech, Sept. to Oct. 2024
      - JC Biotech, Nov. 2024 to Jun. 2025
-     - MS, Northeastern, to May 2027 (start term to confirm)
+     - MS, Northeastern, Fall 2025 to May 2027
      - then the projects
    - Each stop says plainly what was done there: the role, two or three results and the stack,
      not just a title.
-   - Use only dates that are in `src/content.ts` or the resume. The SRM start year and the
-     Northeastern start term must be confirmed before they are shown.
+   - Use only dates that are in `src/content.ts` or the resume (start dates confirmed on 6 November).
 4. **Continuous trackpad scrolling.**
    - Map wheel and touch deltas straight onto journey position, with gentle smoothing and a short
      "detent" hold at each stop: resistance near whole numbers, not a snap.

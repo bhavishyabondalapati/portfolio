@@ -91,7 +91,7 @@ export const education = [
     coords: { lat: 42.3398, lon: -71.0892 },
     degree: "Master of Science in Computer Science",
     gpa: "3.9",
-    dates: "Expected May 2027",
+    dates: "Fall 2025 to May 2027 (expected)",
   },
   {
     school: "SRM Institute of Science and Technology",
@@ -100,7 +100,7 @@ export const education = [
     coords: { lat: 12.8231, lon: 80.0442 },
     degree: "Bachelor of Technology in Computer Science and Engineering (AI and ML)",
     gpa: "3.64",
-    dates: "Jan. 2025",
+    dates: "2021 to Jan. 2025",
   },
 ];
 
@@ -524,8 +524,8 @@ export const survey = {
  * the plain site lists sections by importance instead.
  */
 export const route = [
-  { id: "chennai", place: "Chennai", region: "Tamil Nadu", country: "India", what: "SRM Institute of Science and Technology", when: "B.Tech, finished Jan. 2025", coords: { lat: 12.8231, lon: 80.0442 } },
+  { id: "chennai", place: "Chennai", region: "Tamil Nadu", country: "India", what: "SRM Institute of Science and Technology", when: "B.Tech, 2021 to Jan. 2025", coords: { lat: 12.8231, lon: 80.0442 } },
   { id: "hyderabad", place: "Hyderabad", region: "Telangana", country: "India", what: "Mouri Tech", when: "Sept. to Oct. 2024", coords: { lat: 17.385, lon: 78.4867 } },
   { id: "ongole", place: "Ongole", region: "Andhra Pradesh", country: "India", what: "JC Biotech", when: "Nov. 2024 to Jun. 2025", coords: { lat: 15.5057, lon: 80.0499 } },
-  { id: "boston", place: "Boston", region: "Massachusetts", country: "USA", what: "Northeastern University", when: "MS, graduating May 2027", coords: { lat: 42.3398, lon: -71.0892 } },
+  { id: "boston", place: "Boston", region: "Massachusetts", country: "USA", what: "Northeastern University", when: "MS, Fall 2025 to May 2027", coords: { lat: 42.3398, lon: -71.0892 } },
 ] satisfies { id: string; place: string; region: string; country: string; what: string; when: string; coords: Coords }[];

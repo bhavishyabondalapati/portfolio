@@ -50,8 +50,7 @@ It meets the numbers, but I can't yet call it seamless:
 - **Labels:** elevation labels on contours, and degree labels on the graticule.
 - **Imagery:** Boston is soft at 500 m per pixel. A sharper public-domain layer would be needed;
   the GIBS Landsat layers came back empty.
-- **Dates:** your SRM start year and Northeastern start term were blank in the brief. The rail shows
-  only the finish and expected dates.
+- **Dates:** done on 6 November (SRM 2021 to Jan. 2025, Northeastern Fall 2025 to May 2027).
 - **SRM SLAM project details** are still to come.
 
 ## ImpactLens and the Aerial plate
