@@ -542,6 +542,8 @@ h1 span {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: clamp(1.5rem, 2.5vw, 2.5rem);
   padding-top: 2.5rem;
+  /* an opened plate grows on its own; its neighbour keeps its height */
+  align-items: start;
 }
 
 .plate,
@@ -686,30 +688,94 @@ h1 span {
   font-size: 0.98rem;
 }
 
-.plate details {
+/* "Read more": the details behind a headline, expanded in place */
+.more {
   border-top: 1px solid var(--rule);
-  padding-top: 0.75rem;
 }
 
-.plate summary {
-  cursor: pointer;
-  font-weight: 600;
-  width: fit-content;
-  min-height: 2.75rem;
+.more summary {
   display: flex;
   align-items: center;
+  gap: 0.5rem;
+  width: fit-content;
+  min-height: 2.75rem;
+  padding: 0 1.25rem;
+  cursor: pointer;
+  font-weight: 600;
+  list-style: none;
 }
 
-.plate summary:hover {
+.more summary::-webkit-details-marker {
+  display: none;
+}
+
+/* a small chevron that turns when open */
+.more summary::after {
+  content: "";
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-0.15rem) rotate(45deg);
+  transition: transform 0.2s;
+}
+
+.more[open] summary::after {
+  transform: translateY(0.1rem) rotate(-135deg);
+}
+
+.more summary:hover {
   color: var(--orange-text);
 }
 
-.plate details[open] summary {
-  margin-bottom: 0.6rem;
+.more .more-open,
+.more[open] .more-closed {
+  display: none;
 }
 
-.plate details p {
-  margin-bottom: 0.6rem;
+.more[open] .more-open {
+  display: inline;
+}
+
+.more-body {
+  border-top: 1px solid var(--rule);
+}
+
+.more-body h4 {
+  margin-top: 0.4rem;
+  color: var(--ink-2);
+}
+
+.more-body h4:first-child {
+  margin-top: 0;
+}
+
+/* in a job, the disclosure sits under the two visible points, without the plate's frame */
+.job .more {
+  margin-top: 1rem;
+  border-top: 0;
+}
+
+.job .more summary {
+  padding: 0;
+}
+
+.job .more-body {
+  border-top: 0;
+}
+
+.job .more-body ul {
+  margin-top: 0.4rem;
+}
+
+.plate-stack {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 0;
+}
+
+.plate-figure .plate-line {
+  margin: -0.25rem 0 1rem;
+  color: var(--ink);
 }
 
 .plate-foot {
@@ -928,10 +994,6 @@ h1 span {
 
 .gazetteer td.mono {
   white-space: nowrap;
-}
-
-.gazetteer td.stack {
-  white-space: normal;
 }
 
 .gazetteer tbody td:nth-child(3) {
@@ -1699,7 +1761,7 @@ h1 span {
 }
 
 @media (max-width: 640px) {
-  /* the gazetteer becomes a list: number and name, then what it does, then the stack */
+  /* the gazetteer becomes a list: number and name, then what it does */
   .gazetteer table,
   .gazetteer tbody,
   .gazetteer tr,
@@ -1734,8 +1796,7 @@ h1 span {
     border: 0;
   }
 
-  .gazetteer tbody td:nth-child(3),
-  .gazetteer tbody td:nth-child(4) {
+  .gazetteer tbody td:nth-child(3) {
     grid-column: 1 / -1;
     min-width: 0;
   }

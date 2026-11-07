@@ -37,6 +37,23 @@ function SheetHead({ n, label, title, note, id }: { n: string; label: string; ti
   );
 }
 
+/**
+ * The details behind a headline, expanded in place. A native <details>: keyboard and screen
+ * readers get the expanded/collapsed state for free, and closed content (images too) never loads.
+ */
+function ReadMore({ name, children }: { name: string; children: React.ReactNode }) {
+  return (
+    <details className="more">
+      <summary>
+        <span className="more-closed">Read more</span>
+        <span className="more-open">Show less</span>
+        <span className="sr-only"> about {name}</span>
+      </summary>
+      <div className="more-body">{children}</div>
+    </details>
+  );
+}
+
 function Plate({ p, n }: { p: FeaturedProject; n: number }) {
   const titleId = `plate-${p.slug}`;
   return (
@@ -47,60 +64,60 @@ function Plate({ p, n }: { p: FeaturedProject; n: number }) {
       </div>
       <div className="plate-figure">
         <h3 id={titleId}>{p.name}</h3>
+        <p className="plate-line">{p.oneLine}</p>
         <p>
           <strong>{p.figure.value}</strong>
           <span>{p.figure.label}</span>
         </p>
       </div>
-      {p.media.length > 0 && (
-        <div className={`plate-media count-${p.media.length}`}>
-          {p.media.map((m) => (
-            <figure key={m.src}>
-              <img src={m.src} alt={m.alt} loading="lazy" decoding="async" />
-              {m.caption && <figcaption className="mono">{m.caption}</figcaption>}
-            </figure>
-          ))}
-        </div>
-      )}
-      {p.slug === "aerial-change-intelligence" && (
-        <p className="ndvi-key mono" aria-hidden="true">
-          <span>NDVI 0</span>
-          <i />
-          <span>0.9</span>
-        </p>
-      )}
-      {p.chart && <PlateChart chart={p.chart} />}
-      <div className="plate-body">
-        <p className="plate-line">{p.oneLine}</p>
-        {p.result.length > 1 && (
-          <ul>
-            {p.result.slice(1).map((r) => (
-              <li key={r}>{r}</li>
+      <p className="plate-stack mono stack">{p.stack.join(" · ")}</p>
+      <ReadMore name={p.name}>
+        {p.media.length > 0 && (
+          <div className={`plate-media count-${p.media.length}`}>
+            {p.media.map((m) => (
+              <figure key={m.src}>
+                <img src={m.src} alt={m.alt} loading="lazy" decoding="async" />
+                {m.caption && <figcaption className="mono">{m.caption}</figcaption>}
+              </figure>
             ))}
-          </ul>
+          </div>
         )}
-        <details>
-          <summary>
-            Problem and what I built<span className="sr-only">: {p.name}</span>
-          </summary>
+        {p.slug === "aerial-change-intelligence" && (
+          <p className="ndvi-key mono" aria-hidden="true">
+            <span>NDVI 0</span>
+            <i />
+            <span>0.9</span>
+          </p>
+        )}
+        {p.chart && <PlateChart chart={p.chart} />}
+        <div className="plate-body">
+          {p.result.length > 1 && (
+            <>
+              <h4 className="mono">Results</h4>
+              <ul>
+                {p.result.slice(1).map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          <h4 className="mono">The problem</h4>
           <p>{p.problem}</p>
+          <h4 className="mono">What I built</h4>
           <ul>
             {p.built.map((b) => (
               <li key={b}>{b}</li>
             ))}
           </ul>
-        </details>
-      </div>
-      <div className="plate-foot">
-        <span className="mono stack">{p.stack.join(" · ")}</span>
-        <span className="plate-links">
-          {p.links.map((l) => (
-            <a key={l.href} href={l.href} {...ext}>
-              {l.label}
-            </a>
-          ))}
-        </span>
-      </div>
+          <p className="plate-links">
+            {p.links.map((l) => (
+              <a key={l.href} href={l.href} {...ext}>
+                {l.label}
+              </a>
+            ))}
+          </p>
+        </div>
+      </ReadMore>
     </article>
   );
 }
@@ -136,6 +153,11 @@ function SmallPlate({ s, n }: { s: SecondaryProject; n: string }) {
 
 export function Sections() {
   const earlier = [...(srmProject ? [srmProject] : []), ...earlierWork];
+  // one line per project: earlier work first, then the smaller builds
+  const gazetteer = [
+    ...earlier.map((e) => ({ name: e.name, oneLine: e.oneLine, href: e.links[0]?.href })),
+    ...otherWork.map((o) => ({ name: o.name, oneLine: o.oneLine, href: o.href })),
+  ];
   return (
     <>
       <section id="experience" className="sheet" aria-labelledby="experience-title">
@@ -153,11 +175,20 @@ export function Sections() {
                 <p className="job-role">{job.role}</p>
                 <p className="job-summary">{job.summary}</p>
                 <ul>
-                  {job.points.map((pt) => (
+                  {job.points.slice(0, 2).map((pt) => (
                     <li key={pt}>{pt}</li>
                   ))}
                 </ul>
-                <p className="mono stack chips">{job.stack.join(" · ")}</p>
+                <ReadMore name={job.company}>
+                  {job.points.length > 2 && (
+                    <ul>
+                      {job.points.slice(2).map((pt) => (
+                        <li key={pt}>{pt}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <p className="mono stack chips">{job.stack.join(" · ")}</p>
+                </ReadMore>
               </div>
             </article>
           ))}
@@ -206,37 +237,26 @@ export function Sections() {
             label="Gazetteer"
             title="Earlier work"
             id="earlier-title"
-            note={`${earlier.length + otherWork.length} entries`}
+            note={`${gazetteer.length} entries · one line each`}
           />
-          <div className="small-plates">
-            {earlier.map((s, i) => (
-              <SmallPlate key={s.slug} s={s} n={`Plate 4.${i + 1}`} />
-            ))}
-          </div>
           <div className="gazetteer" role="region" aria-labelledby="gazetteer-caption" tabIndex={0}>
             <table>
               <caption id="gazetteer-caption" className="mono">
-                Index of smaller builds
+                Index of earlier and smaller builds
               </caption>
               <thead>
                 <tr className="mono">
                   <th scope="col">No.</th>
                   <th scope="col">Name</th>
                   <th scope="col">What it does</th>
-                  <th scope="col">Stack</th>
                 </tr>
               </thead>
               <tbody>
-                {otherWork.map((o, i) => (
+                {gazetteer.map((o, i) => (
                   <tr key={o.name}>
                     <td className="mono">G-{String(i + 1).padStart(2, "0")}</td>
-                    <th scope="row">
-                      <a href={o.href} {...ext}>
-                        {o.name}
-                      </a>
-                    </th>
+                    <th scope="row">{o.href ? <a href={o.href} {...ext}>{o.name}</a> : o.name}</th>
                     <td>{o.oneLine}</td>
-                    <td className="mono stack">{o.stack.join(" · ")}</td>
                   </tr>
                 ))}
               </tbody>
