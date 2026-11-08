@@ -72,3 +72,13 @@ are also in the page footer.
 
 Not shipped: the photos in `docs/references/` (reference only, gitignored) and the author's own
 photos in `docs/references/wow/own/`.
+
+## Sketchbook experiment (branch "sketchbook", route /sketchbook-test)
+
+`public/landing-pages/meng-to-sketchbook.html`, its `meng-to-sketchbook/` images and fonts, and
+`src/shaders/` are ThreeUI's MengToSketchbookLandingPage (MIT, Copyright (c) 2026 Meng To; ThreeUI's
+ASSET-LICENSES.md covers its included images under the same MIT licence). Every file was checked against the
+SHA-256 hashes ThreeUI publishes. Fonts: Instrument Serif, Newsreader and Fragment Mono (SIL OFL 1.1;
+`src/shaders/fonts/fragment-mono.woff2` is the upstream Fragment Mono Regular, since ThreeUI's own copy is not
+distributed separately). The nine Singapore drawings, the name, bio and links belong to Meng To and are to be
+replaced before this goes live.
