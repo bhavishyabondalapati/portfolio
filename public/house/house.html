@@ -925,6 +925,8 @@ body[data-layout-footer="b"] .foot-base span:last-child{ text-align:right; }
 .repos a:hover b, .repos a:focus-visible b{ color:var(--vermilion); }
 @media (max-width:700px){ .repos a{ grid-template-columns:1fr; gap:2px; padding:12px 2px; } }
 .inl{ color:var(--vermilion); border-bottom:1px solid currentColor; text-decoration:none; }
+.card-link{ position:absolute; inset:0; z-index:4; border-radius:2px; }
+.card-link:focus-visible{ outline:2px solid #f2a541; outline-offset:4px; }
 </style>
 </head>
 <body data-layout-hero="b" data-layout-story="b" data-layout-gallery="b"
@@ -1080,6 +1082,7 @@ body[data-layout-footer="b"] .foot-base span:last-child{ text-align:right; }
   </div>
   <div class="cards" id="cards">
     <article class="card" data-rv="up" data-view="0" data-cursor>
+      <a class="card-link" href="https://github.com/bhavishyabondalapati/aerial-change-intelligence" target="_blank" rel="noopener noreferrer" aria-label="Aerial Change Intelligence: code on GitHub (opens in a new tab)"></a>
       <div class="card-fr" data-frame>
                 <span class="card-ar"><svg viewBox="0 0 14 14" fill="none"><path d="M3 11 11 3M5 3h6v6" stroke="#ece6d6" stroke-width="1.3"/></svg></span>
         <div class="card-lab"><b>Aerial Change Intelligence</b><span class="jp">F1 0.898</span></div>
@@ -1087,6 +1090,7 @@ body[data-layout-footer="b"] .foot-base span:last-child{ text-align:right; }
       <div class="card-meta"><span>Computer vision · GIS</span><span>Featured project 1 / 7</span></div>
     </article>
     <article class="card" data-rv="up" data-view="1" data-cursor>
+      <a class="card-link" href="https://github.com/bhavishyabondalapati/llm-gateway" target="_blank" rel="noopener noreferrer" aria-label="LLM Gateway: code on GitHub (opens in a new tab)"></a>
       <div class="card-fr" data-frame>
                 <span class="card-ar"><svg viewBox="0 0 14 14" fill="none"><path d="M3 11 11 3M5 3h6v6" stroke="#ece6d6" stroke-width="1.3"/></svg></span>
         <i class="glow glow--flame" style="--gx:70.5%; --gy:47.2%; --gr:14%; --gt:3.7s; --gt2:5.3s; --gc1:rgba(255,198,124,.62); --gc2:rgba(226,118,40,.30)"></i>
@@ -1095,6 +1099,7 @@ body[data-layout-footer="b"] .foot-base span:last-child{ text-align:right; }
       <div class="card-meta"><span>Backend · LLM infrastructure</span><span>Featured project 2 / 7</span></div>
     </article>
     <article class="card" data-rv="up" data-view="2" data-cursor>
+      <a class="card-link" href="https://github.com/bhavishyabondalapati/lexintake" target="_blank" rel="noopener noreferrer" aria-label="LexIntake: code on GitHub (opens in a new tab)"></a>
       <div class="card-fr" data-frame>
                 <span class="card-ar"><svg viewBox="0 0 14 14" fill="none"><path d="M3 11 11 3M5 3h6v6" stroke="#ece6d6" stroke-width="1.3"/></svg></span>
         <div class="card-lab"><b>LexIntake</b><span class="jp">1,768 / 1,782</span></div>
@@ -1181,7 +1186,7 @@ body[data-layout-footer="b"] .foot-base span:last-child{ text-align:right; }
   <h2 class="display" data-rv="up">Say hello</h2>
   <p class="body-lg" data-rv="up">Email is the fastest way to reach me. Open to roles in ML systems, backend
     and full stack.</p>
-  <a class="cta" href="mailto:bondalapati.b@northeastern.edu" data-rv="fade" data-cursor>
+  <a class="cta" href="mailto:bondalapati.b@northeastern.edu" target="_top" data-rv="fade" data-cursor>
     <i></i><span>Open to roles · bondalapati.b@northeastern.edu</span>
     <svg viewBox="0 0 14 14" fill="none" width="13" height="13"><path d="M3 11 11 3M5 3h6v6" stroke="#ece6d6" stroke-width="1.3"/></svg>
   </a>
@@ -1205,9 +1210,9 @@ body[data-layout-footer="b"] .foot-base span:last-child{ text-align:right; }
       <li><a href="#eternity" data-cursor>Contact</a></li>
     </ul></div>
     <div><h4>Elsewhere</h4><ul>
-      <li><a href="https://github.com/bhavishyabondalapati" data-cursor>GitHub</a></li>
-      <li><a href="https://linkedin.com/in/bhavishya-bondalapati" data-cursor>LinkedIn</a></li>
-      <li><a href="mailto:bondalapati.b@northeastern.edu" data-cursor>Open to roles</a></li>
+      <li><a href="https://github.com/bhavishyabondalapati" target="_blank" rel="noopener noreferrer" data-cursor>GitHub</a></li>
+      <li><a href="https://linkedin.com/in/bhavishya-bondalapati" target="_blank" rel="noopener noreferrer" data-cursor>LinkedIn</a></li>
+      <li><a href="mailto:bondalapati.b@northeastern.edu" target="_top" data-cursor>Open to roles</a></li>
     </ul></div>
     <div><h4>Colophon</h4><ul>
       <li><a href="#credits" data-cursor>Photo credits</a></li>
