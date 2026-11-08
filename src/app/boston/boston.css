@@ -1,0 +1,52 @@
+/* the frame fills the window; the page inside it scrolls itself */
+.shader-frame {
+  position: fixed;
+  inset: 0;
+  background: #070d17;
+}
+
+/* always on top of the page, and the first thing a keyboard visitor reaches */
+.back-plain {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid rgba(236, 230, 214, 0.45);
+  border-radius: 999px;
+  background: rgba(7, 13, 23, 0.72);
+  backdrop-filter: blur(6px);
+  color: #ece6d6;
+  font: 500 0.8125rem/1 system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+.back-plain:hover,
+.back-plain:focus-visible {
+  background: #f2a541;
+  border-color: #f2a541;
+  color: #070d17;
+  outline: none;
+}
+/* on phones the button gets its own slim bar, so it never covers the page's header */
+@media (max-width: 700px) {
+  .shader-frame > .landing-page-frame {
+    inset: 46px 0 0 0 !important;
+    height: calc(100% - 46px) !important;
+  }
+  .back-plain {
+    top: 7px;
+    left: 10px;
+    right: auto;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.78rem;
+  }
+}
+
+/* ThreeUI's frame sizes itself from its own stylesheet; here it simply fills the window */
+.shader-frame > .landing-page-frame {
+  position: absolute !important;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}

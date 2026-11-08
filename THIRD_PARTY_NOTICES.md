@@ -1,12 +1,31 @@
 # Third-party notices
 
-## ThreeUI Community (MIT)
+## three.js
 
-Some scene techniques in `src/engine/` follow the approach of ThreeUI's Community components
-(`TempleNightScene`, `KageLandingPage`, `SylvaLivingWorldScene`) from https://github.com/MengTo/threeui:
-the seeded random function, frame-rate independent damping, layered canvas noise with a normal map
-derived from a height map, swaying foreground cut-out sheets, recycled instanced falling leaves, a
-spline camera rig, and a per-letter wordmark sized to the frame. No ThreeUI files or images are included.
+`public/house/three.min.js` is three.js (MIT licence, Copyright 2010-2026 three.js authors) and keeps its
+licence header.
+
+## Fonts
+
+- Archivo and IBM Plex Mono (plain site): SIL Open Font License 1.1, served from this site by `next/font`.
+- Onest and a static subset of Archivo ExtraBold (Boston page): SIL Open Font License 1.1, see
+  `src/vendor/threeui/FONT-LICENSES.md`.
+
+## Images
+
+- `public/work/*`: the author's own figures and video, copied from the author's own repositories.
+- `public/house/assets/*.svg`: foreground layers drawn in code by `scripts/wow/make-fg.py` (the author's own).
+- `public/house/assets/scene-*.webp`: the four photographs credited below.
+
+## Walk the Charles (route /boston)
+
+`public/house/house.html` is the Boston-at-night page. Its engine (scroll rig, foreground stages, giant
+word, cloth cards, post-processing) is derived from ThreeUI's Kage landing page
+(https://github.com/MengTo/threeui, MIT, Copyright (c) 2026 Meng To). Kage's temple, images, copy and
+fonts are not shipped: the skyline, river, lamps, snow, moon, sky and every foreground layer (elm,
+reeds, gas lamp, railing, autumn leaves) are drawn in code (`scripts/wow/make-fg.py` and the page's own
+scripts). `src/vendor/threeui/` holds the small frame component and typography recipe used to host the
+page. The ThreeUI MIT licence, in full:
 
 ```
 MIT License
@@ -32,47 +51,24 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## three.js
+Fonts on this page: Onest (SIL OFL 1.1, Copyright 2021 The Onest Project Authors,
+`src/vendor/threeui/FONT-LICENSES.md`) and a static subset of Archivo ExtraBold, width 125 (SIL OFL 1.1,
+Copyright The Archivo Project Authors). `public/house/three.min.js` is three.js (MIT) and keeps its header.
+Kage's unlicensed "Wordmark" font and the unchanged Kage page were removed from the repository.
 
-`three` 0.186.1, MIT licence (Copyright 2010-2026 three.js authors).
+### Photographs on /boston
 
-## Post-processing libraries
+Four photographs appear, each as a full framed image (hero preview and project cards), cropped and
+colour-graded by `scripts/wow/grade.py` (navy shadows, amber highlights, film grain). Nothing is cut out
+or pasted into the scene. Licences were checked on each source page on 7 November 2026. The credit lines
+are also in the page footer.
 
-- `postprocessing` 6.39.5 by Raoul van Rüschen (pmndrs), zlib licence: https://github.com/pmndrs/postprocessing/blob/main/LICENSE.md
-- `n8ao` 2.0.1 by N8python (installed, not currently bundled): its package.json says ISC and its LICENSE file is CC0 1.0 (public domain dedication): https://github.com/N8python/n8ao/blob/master/LICENSE
+| Used for | Photo and author | Licence |
+|---|---|---|
+| Hero preview, Longfellow Bridge | [Longfellow Bridge at dusk](https://commons.wikimedia.org/wiki/File:Longfellow_Bridge_at_dusk.jpg), Justin Jensen, via Wikimedia Commons | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) |
+| Project card, Back Bay | [Downtown Boston skyline and reflections in the frozen Charles River](https://commons.wikimedia.org/wiki/File:Downtown_Boston_skyline_and_reflections_in_the_frozen_Charles_River_(51307815725).jpg), Chris Rycroft, via Wikimedia Commons | [CC BY 2.0](https://creativecommons.org/licenses/by/2.0/) |
+| Project card, Zakim Bridge | [Zakim Bridge, new lighting](https://commons.wikimedia.org/wiki/File:Boston,_Zakim_Bridge,_New_Lighting,_December_2012_(8291373895).jpg), MassDOT (courtesy credit) | [Public domain](https://creativecommons.org/publicdomain/mark/1.0/) |
+| Project card, Beacon Hill | [Snow on Beacon Hill](https://unsplash.com/photos/brown-concrete-building-covered-with-snow-during-daytime-VtqqOg_eHTM), Photo by Andrew Spencer on Unsplash | [Unsplash License](https://unsplash.com/license) |
 
-`postprocessing` is bundled, unmodified, into the lazily loaded 3D chunk.
-
-## Fonts
-
-Archivo and IBM Plex Mono, SIL Open Font License 1.1, served from this site by `next/font`.
-
-## Elevation data
-
-`public/terrain/*.png` and `*.json` (India and Boston tiles, made by `scripts/terrain.mjs`) and the
-coastlines in `src/lib/inset-india.json` and `src/lib/inset-world.json` (made by
-`scripts/inset.mjs`) come from:
-
-Terrain: NOAA NCEI, ETOPO 2022 15 Arc-Second Global Relief Model, doi:10.25921/fd45-gt74.
-
-Downloaded from NOAA's ERDDAP server (dataset `ETOPO_2022_v1_15s`), resampled to every other
-sample and re-encoded as Terrarium PNGs. Licence, as ERDDAP states it: "The data may be used and
-redistributed for free but is not intended for legal use, since it may contain inaccuracies.
-Neither the data Contributor, ERD, NOAA, nor the United States Government, nor any of their
-employees or contractors, makes any warranty, express or implied, including warranties of
-merchantability and fitness for a particular purpose, or assumes any legal liability for the
-accuracy, completeness, or usefulness, of this information." The flyover draws heights 12 times
-taller than they are and says so on screen.
-
-## Imagery
-
-`public/terrain/imagery-*.jpg` (made by `scripts/imagery.mjs`) is NASA Blue Marble Next Generation
-(NASA Earth Observatory), fetched from NASA's Global Imagery Browse Services (GIBS). NASA imagery is
-generally not subject to copyright in the United States; NASA asks to be acknowledged as the source.
-GIBS acknowledgement: "We acknowledge the use of imagery provided by services from NASA's Global
-Imagery Browse Services (GIBS), part of NASA's Earth Science Data and Information System (ESDIS)."
-The flyover credits it on screen.
-
-## Images
-
-- `public/work/*`: the author's own figures and video, copied from the author's own repositories.
+Not shipped: the photos in `docs/references/` (reference only, gitignored) and the author's own
+photos in `docs/references/wow/own/`.

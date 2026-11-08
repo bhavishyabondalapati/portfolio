@@ -1,5 +1,5 @@
 import { Sections } from "@/components/Sections";
-import { FlyButton, SurveyController, ThemeToggle } from "@/components/Survey";
+import { ThemeToggle, WalkButton } from "@/components/Survey";
 import { contact, featured, person, survey } from "@/content";
 import { formatCoords } from "@/lib/geo";
 
@@ -58,7 +58,7 @@ export default function Home() {
                 <a className="btn btn-primary" href={person.heroAction.href}>
                   {person.heroAction.label}
                 </a>
-                <FlyButton />
+                <WalkButton />
               </div>
               <p className="hero-links">
                 <a href={`mailto:${contact.email}`}>Email</a>
@@ -107,7 +107,6 @@ export default function Home() {
           <span>Datum WGS 84 · Set in Archivo and IBM Plex Mono</span>
         </div>
       </footer>
-      <SurveyController />
     </>
   );
 }

@@ -15,7 +15,7 @@ test("no phone number anywhere", () => {
 });
 
 test("every featured project has problem, built, result, stack and a link", () => {
-  assert.equal(content.featured.length, 6);
+  assert.equal(content.featured.length, 7);
   for (const p of content.featured) {
     assert.ok(p.problem.length > 20, p.slug);
     assert.ok(p.built.length > 0, p.slug);
@@ -43,10 +43,10 @@ test("Kambaz points at the individual build, not the team fork", () => {
   assert.equal(hrefs.includes("eight-theta"), false);
 });
 
-test("plain-site project order: the six plates, then coursework, then earlier work", () => {
+test("plain-site project order: the seven plates, then coursework, then earlier work", () => {
   assert.deepEqual(
     content.featured.map((p) => p.slug),
-    ["aerial-change-intelligence", "llm-gateway", "lexintake", "reporag", "robot-arm-sim", "excel-copilot"]
+    ["aerial-change-intelligence", "llm-gateway", "lexintake", "reporag", "robot-arm-sim", "excel-copilot", "impactlens"]
   );
   assert.deepEqual(content.coursework.map((p) => p.slug), ["kambaz", "calendar"]);
   assert.equal(content.coursework[0].course, "CS 5610 Web Development");
@@ -63,15 +63,6 @@ test("every plate prints a key figure that appears in its own results", () => {
   }
   // plates without a picture get a figure drawn from their numbers
   for (const p of content.featured) assert.ok(p.media.length > 0 || p.chart, p.slug);
-});
-
-test("the flyover route runs in timeline order with real coordinates", () => {
-  assert.deepEqual(content.route.map((r) => r.id), ["chennai", "hyderabad", "ongole", "boston"]);
-  const ongole = content.route.find((r) => r.id === "ongole")!;
-  assert.ok(Math.abs(ongole.coords.lat - 15.5) < 0.1 && Math.abs(ongole.coords.lon - 80.05) < 0.1);
-  const jc = content.experience.find((e) => e.company.startsWith("JC Biotech"))!;
-  assert.deepEqual(jc.coords, ongole.coords);
-  assert.equal(content.route[3].coords.lon < 0, true); // Boston is west of Greenwich
 });
 
 test("the house and the kitten are gone from the content", () => {

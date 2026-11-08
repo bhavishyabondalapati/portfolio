@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, IBM_Plex_Mono } from "next/font/google";
-import { surveyScript } from "@/lib/surveyMode";
+import { themeScript } from "@/lib/theme";
 import { person } from "@/content";
-import { FLYOVER_ENABLED, SITE_URL } from "@/lib/site";
+import { SITE_URL } from "@/lib/site";
 import "./globals.css";
 
 // next/font downloads the fonts at build time and serves them from this site, so no request goes to Google.
@@ -53,12 +53,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       className={`${archivo.variable} ${plexMono.variable}`}
-      data-mode="plain"
-      data-fly="no"
       suppressHydrationWarning
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: surveyScript(FLYOVER_ENABLED) }} />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>{children}</body>
     </html>

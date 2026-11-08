@@ -18,7 +18,7 @@ import {
 } from "@/content";
 import { formatCoords } from "@/lib/geo";
 import { PlateChart } from "./PlateChart";
-import { FlyButton } from "./Survey";
+import { WalkButton } from "./Survey";
 
 const ext = { rel: "noopener noreferrer", target: "_blank" } as const;
 
@@ -219,7 +219,7 @@ export function Sections() {
               </ul>
             </div>
           )}
-          <aside className="invite fly-only" aria-labelledby="invite-title">
+          <aside className="invite" aria-labelledby="invite-title">
             <svg viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M4 46c10-6 16-2 24-8s14-14 32-10" />
               <path d="M4 55c10-5 18-1 26-6s14-10 30-8" opacity=".45" />
@@ -230,7 +230,7 @@ export function Sections() {
               <h3 id="invite-title">{survey.invite.title}</h3>
               <p>{survey.invite.text}</p>
             </div>
-            <FlyButton />
+            <WalkButton />
           </aside>
         </div>
       </section>

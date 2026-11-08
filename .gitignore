@@ -20,3 +20,9 @@ docs/*.pdf
 .vercel
 .env*
 !.env.example
+
+# Generated images dropped in for the house (converted copies live in public/house/assets)
+docs/wow-assets/drop/
+docs/wow-assets/originals/
+docs/wow-assets/cut/
+docs/wow-assets/shots/

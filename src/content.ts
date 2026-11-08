@@ -325,6 +325,39 @@ export const featured: FeaturedProject[] = [
       steps: ["Plain-English request", "Check the shape", "Check the meaning", "Preview the cell diff", "You confirm", "Apply, with undo"],
     },
   },
+  {
+    slug: "impactlens",
+    name: "ImpactLens",
+    field: "Geo-AI · agents on AWS",
+    figure: { value: "F1 0.92", label: "flood detection on Sen1Floods11 test data, against 0.87 for the best tuned water-index baseline" },
+    oneLine:
+      "An open rebuild of my aerial impact-intelligence internship work on public Sentinel-2 data: change detection, hectares per plot and fact-checked reports.",
+    problem:
+      "After a flood or storm, someone has to say what changed, how much land it covers and which plots matter most. Company imagery is private, so I rebuilt the whole pipeline on public data to show it works end to end.",
+    built: [
+      "A Siamese U-Net that compares before and after Sentinel-2 imagery and detects change, plus a flood U-Net.",
+      "A Geo-AI roll-up of results into per-plot acreage and severity.",
+      "A 6-agent LangGraph pipeline that writes RAG-grounded reports, checked against the underlying numbers by a deterministic validator.",
+      "A serverless AWS deployment (S3, SQS, Lambda, Step Functions, Terraform), built and tested locally and not yet deployed.",
+    ],
+    result: [
+      "Flood U-Net test F1 0.92 on Sen1Floods11, against 0.87 for the best tuned water-index baseline.",
+      "On the Valencia 2024 DANA flood, with no location hints given to the model, Paiporta, Sedaví and Alfafar rank highest for vegetation loss: 37 to 42% of their vegetated land, against 2 to 3% in comparable farm towns.",
+      "Work in progress: Phases 1 to 4 are done, the agent pipeline (Phase 5) and the AWS deployment (Phase 6) are built.",
+    ],
+    stack: ["PyTorch", "Siamese U-Net", "Sentinel-2", "Sen1Floods11", "LangGraph", "RAG", "S3", "SQS", "Lambda", "Step Functions", "Terraform"],
+    links: [{ label: "Code on GitHub", href: `${GH}/impactlens` }],
+    media: [],
+    chart: {
+      kind: "bars",
+      unit: "flood detection F1, Sen1Floods11 test data",
+      caption: "ImpactLens U-Net against the best water-index baseline",
+      rows: [
+        { label: "ImpactLens U-Net", value: 0.92 },
+        { label: "Best water index", value: 0.87 },
+      ],
+    },
+  },
 ];
 
 export const coursework: SecondaryProject[] = [
@@ -380,13 +413,7 @@ export const earlierWork: SecondaryProject[] = [
 ];
 
 /** Unfinished projects: one line each, no plate until they have measured results. */
-export const inProgress: { name: string; oneLine: string; href: string }[] = [
-  {
-    name: "ImpactLens",
-    oneLine: "Flood and crop impact from before and after Sentinel-2 imagery, rebuilding my aerial internship work on public data.",
-    href: `${GH}/impactlens`,
-  },
-];
+export const inProgress: { name: string; oneLine: string; href: string }[] = [];
 
 export const otherWork: ListedProject[] = [
   {
@@ -481,32 +508,15 @@ export const contact = {
   // Phone number is deliberately not included.
 };
 
-// Words for the survey framing and the optional 3D flyover.
+// Words for the survey framing and the invitation to the Boston page.
 export const survey = {
   invite: {
-    button: "Fly the survey",
-    tag: "3D",
-    title: "Want to see this as a map?",
-    text: "Fly the route from Chennai to Boston over 3D terrain, with each stop opening its section. Interactive 3D, about a minute; best on a recent laptop or desktop.",
+    walkButton: "Walk the Charles",
+    walkTag: "Boston at night",
+    title: "Want to see this at night?",
+    text: "Walk the Charles in Boston after dark: my experience, featured projects and skills as you scroll, drawn live in 3D. It opens on request, works on phones, and has a Back to the plain site button.",
   },
   backLabel: "Back to the plain site",
-  // Words inside the 3D flyover.
-  flight: {
-    title: "The survey, flown",
-    subtitle: "A drone flies from Chennai to Boston in the order it happened, and its scan reveals the land",
-    hint: "Scroll to fly; the down arrow jumps to the next stop",
-    next: "Next stop",
-    previous: "Back to the start",
-    loading: "Loading terrain",
-    preparing: "Preparing the scene",
-    locked: "Landmark locked",
-    inset: "India leg",
-    insetWorld: "To Boston",
-    exaggeration: "Vertical exaggeration ×12",
-    credit: "Terrain: NOAA NCEI, ETOPO 2022 15 Arc-Second Global Relief Model, doi:10.25921/fd45-gt74",
-    imageryCredit: "Imagery: NASA Blue Marble Next Generation (NASA Earth Observatory), via NASA GIBS",
-    failed: "The 3D view could not start on this device.",
-  },
   // The map legend on the first screen.
   legend: [
     { key: "Station", value: "Boston, MA" },
@@ -518,14 +528,3 @@ export const survey = {
   ],
   revised: "Oct 2026",
 };
-
-/**
- * The flyover route, in the order it happened. Fun mode flies these in sequence;
- * the plain site lists sections by importance instead.
- */
-export const route = [
-  { id: "chennai", place: "Chennai", region: "Tamil Nadu", country: "India", what: "SRM Institute of Science and Technology", when: "B.Tech, 2021 to Jan. 2025", coords: { lat: 12.8231, lon: 80.0442 } },
-  { id: "hyderabad", place: "Hyderabad", region: "Telangana", country: "India", what: "Mouri Tech", when: "Sept. to Oct. 2024", coords: { lat: 17.385, lon: 78.4867 } },
-  { id: "ongole", place: "Ongole", region: "Andhra Pradesh", country: "India", what: "JC Biotech", when: "Nov. 2024 to Jun. 2025", coords: { lat: 15.5057, lon: 80.0499 } },
-  { id: "boston", place: "Boston", region: "Massachusetts", country: "USA", what: "Northeastern University", when: "MS, Fall 2025 to May 2027", coords: { lat: 42.3398, lon: -71.0892 } },
-] satisfies { id: string; place: string; region: string; country: string; what: string; when: string; coords: Coords }[];
