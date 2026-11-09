@@ -27,11 +27,7 @@ export function WalkButton({ className = "btn btn-secondary" }: { className?: st
 export function SketchbookButton({ className = "btn btn-secondary" }: { className?: string }) {
   return (
     <a className={`${className} sketchbook-link`} href="/sketchbook">
-      {survey.invite.sketchbookButton}{" "}
-      <span className="tag">
-        {survey.invite.sketchbookTag}
-        <span className="sr-only"> experience</span>
-      </span>
+      {survey.invite.sketchbookButton}
     </a>
   );
 }

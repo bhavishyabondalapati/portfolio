@@ -514,9 +514,8 @@ export const survey = {
     walkButton: "Walk the Charles",
     walkTag: "Boston at night",
     sketchbookButton: "Open the sketchbook",
-    sketchbookTag: "9 plates",
     title: "Two other ways to see this",
-    text: "Walk the Charles in Boston after dark: my experience, featured projects and skills as you scroll, drawn live in 3D. Or open the sketchbook: nine of my projects as plates, each with its key result and a link to the code. Both open on request, work on phones, and have a Back to the plain site button.",
+    text: "Walk the Charles in Boston after dark: my experience, featured projects and skills as you scroll, drawn live in 3D. Or open the sketchbook: nine of my projects as pages in a sketchbook, each with its key result and a link to the code. Both open on request, work on phones, and have a Back to the plain site button.",
   },
   backLabel: "Back to the plain site",
   // The map legend on the first screen.

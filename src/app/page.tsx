@@ -85,7 +85,7 @@ export default function Home() {
               </dl>
               <p className="legend-scale mono">
                 <i aria-hidden="true" />
-                Sheets 01 to 06 · {featured.length} plates
+                Sheets 01 to 06 · {featured.length} featured projects
               </p>
             </aside>
             {/* the sheet's margin line, as printed along the edge of a map */}

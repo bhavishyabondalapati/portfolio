@@ -59,7 +59,8 @@ export function applyBackgroundPresentation(
   });
 
   if (!backgroundCanvasSelector) {
-    document.documentElement.removeAttribute("data-threeui-presentation");
+    // the page can already be navigating away (a Back link) when load fires, with no root element yet
+    document.documentElement?.removeAttribute("data-threeui-presentation");
     return;
   }
 
