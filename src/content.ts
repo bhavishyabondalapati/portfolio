@@ -528,3 +528,25 @@ export const survey = {
   ],
   revised: "Oct 2026",
 };
+
+/**
+ * The sketchbook: one plate per project, each with a short label that explains its key result on its own.
+ * Titles, fields, GitHub links and results come from the project entries above; only the label is written here.
+ */
+export const sketchbook = {
+  kicker: `${person.role} · ${person.location}`,
+  hint: "Drag a page to turn it · Drag the glass over a figure",
+  about: `${person.intro} ${person.lookingFor}`,
+  indexLabel: "Featured projects",
+  plates: [
+    { slug: "aerial-change-intelligence", label: "F1 0.898 change-detection accuracy on 128 unseen test pairs" },
+    { slug: "llm-gateway", label: "3,085 requests per second through the gateway, at 19.8 ms median latency" },
+    { slug: "lexintake", label: "1,768 / 1,782 fields extracted correctly on 248 held-out documents" },
+    { slug: "reporag", label: "Recall@5 0.96 on itsdangerous; 0.722 on a held-out set" },
+    { slug: "robot-arm-sim", label: "46 / 50 unseen pick-and-place episodes completed" },
+    { slug: "excel-copilot", label: "120 tests; nothing is written without a confirmed preview" },
+    { slug: "impactlens", label: "F1 0.92 flood detection, against 0.87 for the best water-index baseline" },
+    { slug: "doc-intelligence-chatbot", label: "Hit@1 up from 0.42 to 0.71 on 60 hand-labelled questions" },
+    { slug: "kambaz", label: "Courses, modules, assignments and enrollments, with my own Express and MongoDB API" },
+  ],
+};
