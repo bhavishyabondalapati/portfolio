@@ -3,6 +3,8 @@
 The following font software is used by the Boston page (public/house) under the SIL Open Font License, Version 1.1:
 
 - Copyright 2021 The Onest Project Authors (https://github.com/googlefonts/onest)
+- Copyright 2022 The Instrument Serif Project Authors (https://github.com/Instrument/instrument-serif), used by the sketchbook page
+- Copyright 2020 The Newsreader Project Authors (https://github.com/productiontype/Newsreader), used by the sketchbook page
 - Copyright The Archivo Project Authors (https://github.com/Omnibus-Type/Archivo), a static ExtraBold width-125 subset
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

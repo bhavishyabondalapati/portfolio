@@ -23,6 +23,15 @@ export function WalkButton({ className = "btn btn-secondary" }: { className?: st
   );
 }
 
+/** The third way in: the sketchbook at /sketchbook. */
+export function SketchbookButton({ className = "btn btn-secondary" }: { className?: string }) {
+  return (
+    <a className={`${className} sketchbook-link`} href="/sketchbook">
+      {survey.invite.sketchbookButton}
+    </a>
+  );
+}
+
 export function ThemeToggle() {
   const [theme, setTheme] = useState<string | null>(null);
   useEffect(() => setTheme(document.documentElement.dataset.theme ?? "light"), []);

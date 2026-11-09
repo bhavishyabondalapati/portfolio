@@ -77,3 +77,18 @@ test("unfinished work stays off the plates, and the team Kambaz links are presen
   assert.ok(kambaz.links.some((l) => l.href.endsWith("/kambaz-lms-web")));
   assert.ok(kambaz.links.some((l) => l.href.endsWith("/kambaz-lms-api")));
 });
+
+test("every sketchbook plate is a real project, with a label that carries its key result", () => {
+  assert.equal(content.sketchbook.plates.length, 9);
+  const all = [...content.featured, ...content.coursework, ...content.earlierWork];
+  for (const pl of content.sketchbook.plates) {
+    const proj = all.find((p) => p.slug === pl.slug);
+    assert.ok(proj, pl.slug);
+    assert.ok(pl.label.length > 20 && pl.label.length < 100, pl.slug);
+    const nums = pl.label.match(/\d[\d,.]*/g) ?? [];
+    const text = JSON.stringify(proj);
+    for (const n of nums) assert.ok(text.includes(n.replace(/[.,]$/, "")), `${pl.slug}: ${n}`);
+    const links = proj.links.map((l) => l.href);
+    assert.ok(links.some((h) => h.startsWith("https://github.com/")), pl.slug);
+  }
+});

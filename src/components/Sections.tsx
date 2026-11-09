@@ -18,7 +18,7 @@ import {
 } from "@/content";
 import { formatCoords } from "@/lib/geo";
 import { PlateChart } from "./PlateChart";
-import { WalkButton } from "./Survey";
+import { SketchbookButton, WalkButton } from "./Survey";
 
 const ext = { rel: "noopener noreferrer", target: "_blank" } as const;
 
@@ -60,7 +60,7 @@ function Plate({ p, n }: { p: FeaturedProject; n: number }) {
   return (
     <article className="plate" aria-labelledby={titleId}>
       <div className="plate-top mono">
-        <span>Plate 2.{n}</span>
+        <span>Project 2.{n}</span>
         <span>{p.field}</span>
       </div>
       <div className="plate-figure">
@@ -198,7 +198,7 @@ export function Sections() {
 
       <section id="projects" className="sheet" aria-labelledby="projects-title">
         <div className="wrap">
-          <SheetHead n="02" label="Survey plates" title="Projects" id="projects-title" note={`${featured.length} plates · measured results first`} />
+          <SheetHead n="02" label="Featured projects" title="Projects" id="projects-title" note={`${featured.length} projects · measured results first`} />
           <div className="plates">
             {featured.map((p, i) => (
               <Plate key={p.slug} p={p} n={i + 1} />
@@ -230,7 +230,10 @@ export function Sections() {
               <h3 id="invite-title">{survey.invite.title}</h3>
               <p>{survey.invite.text}</p>
             </div>
-            <WalkButton />
+            <div className="invite-actions">
+              <WalkButton />
+              <SketchbookButton />
+            </div>
           </aside>
         </div>
       </section>
@@ -240,7 +243,7 @@ export function Sections() {
           <SheetHead n="03" label="Course projects" title="Coursework" id="coursework-title" note="Northeastern University" />
           <div className="small-plates">
             {coursework.map((s, i) => (
-              <SmallPlate key={s.slug} s={s} n={`Plate 3.${i + 1}`} />
+              <SmallPlate key={s.slug} s={s} n={`Project 3.${i + 1}`} />
             ))}
           </div>
         </div>

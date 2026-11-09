@@ -72,3 +72,22 @@ are also in the page footer.
 
 Not shipped: the photos in `docs/references/` (reference only, gitignored) and the author's own
 photos in `docs/references/wow/own/`.
+
+## Sketchbook (route /sketchbook)
+
+The page `public/sketchbook/sketchbook.html` is built by `scripts/sketchbook/build.mjs` from ThreeUI's
+MengToSketchbookLandingPage (https://github.com/MengTo/threeui, MIT, Copyright (c) 2026 Meng To; the licence
+text is above and in `src/vendor/threeui/LICENSE`). ThreeUI's own asset licence file covers its included
+images under the same MIT licence. The original page is kept, unshipped, in `scripts/sketchbook/source/`; every
+source file and asset was checked against the SHA-256 hashes ThreeUI publishes (source revision e0330548b1ac).
+
+- Kept from ThreeUI (MIT): the page code and motion, and the decoration in `public/sketchbook/decor/` (paper wash,
+  ferns, orchid and plumeria watercolours, divider). `src/shaders/landing-pages/` holds ThreeUI's typography recipe
+  for this page, unchanged.
+- Not kept: Meng To's nine Singapore drawings, his name, biography and links. All text on the page comes from
+  `src/content.ts`.
+- The nine plates (`public/sketchbook/pages/*.webp`) are made by `scripts/sketchbook/plates.py`: ink and wash drawn
+  in code, with the author's own project figures printed on the paper where they exist (the aerial before/after
+  figures, the LexIntake review page, the robot arm render, and two ImpactLens figures from that repository).
+- Fonts: Instrument Serif and Newsreader, SIL Open Font License 1.1 (see `src/vendor/threeui/FONT-LICENSES.md`).
+  The GitHub icon is from Simple Icons (CC0).
