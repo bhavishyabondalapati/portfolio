@@ -4,9 +4,9 @@
 
 ```
 src/content.ts ──► src/app/page.tsx + src/components/Sections.tsx      the plain site (static HTML)
-                          │  "Walk the Charles" (a plain link)
-                          ▼
-              src/app/boston/  ──►  <iframe> public/house/house.html   the Boston-at-night page
+                          │  two plain links
+                          ├─ "Walk the Charles" ► src/app/boston/     ──► <iframe> public/house/house.html
+                          └─ "Open the sketchbook" ► src/app/sketchbook/ ──► <iframe> public/sketchbook/sketchbook.html
 ```
 
 - **The plain site is the product.** It is static HTML, complete without JavaScript beyond a tiny
@@ -41,3 +41,15 @@ src/content.ts ──► src/app/page.tsx + src/components/Sections.tsx      the
 - **Licences.** Only photographs with a clear licence ship, each credited in the page footer and in
   `THIRD_PARTY_NOTICES.md`; the ThreeUI MIT notice is included in full.
 - **Security headers** live in `vercel.json` (static export cannot set them in Next).
+
+## The sketchbook (public/sketchbook)
+
+- `scripts/sketchbook/build.mjs` turns ThreeUI's original sketchbook page (kept, unshipped, in
+  `scripts/sketchbook/source/`) into my page: my name, links and bio, nine plates, and a caption under each book
+  with the key result and the repo link. All words come from `src/content.ts`; a test checks that every plate is a
+  real project and that its label's numbers appear in the project's own results.
+- The nine plates are drawn by `scripts/sketchbook/plates.py` (ink lines, watercolour washes, paper texture). Where I
+  have a real figure it is printed on the paper, toned down to sit in the page (plates 1, 3, 5 and 7).
+- The original arrows did not react to clicks, because the stage captures the pointer when a drag starts. The built
+  page gives the arrows their own pointerdown, so a click reaches them.
+- Small grey text was darkened to AA contrast (ThreeUI's recipe sets those colours, so the override is more specific).

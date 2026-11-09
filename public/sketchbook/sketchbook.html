@@ -421,15 +421,20 @@ button{font:inherit}
 .sb-gh:hover{text-decoration-color:var(--earth)}
 .plate-list li{position:relative}
 .plate .t .res{display:block;margin-top:4px;font-family:inherit;font-size:13.5px;line-height:1.45;color:var(--ink-faint);letter-spacing:0}
-.plate-gh{position:absolute;right:4px;bottom:14px;font-size:11.5px;letter-spacing:.1em;color:var(--earth);text-decoration:underline;text-decoration-color:rgba(43,39,33,.25);text-underline-offset:4px}
+.plate-links{position:absolute;right:4px;bottom:14px;display:flex;gap:20px}
+.sb-links{display:flex;gap:20px;justify-content:center}
+.plate-gh{font-size:11.5px;letter-spacing:.1em;color:var(--earth);text-decoration:underline;text-decoration-color:rgba(43,39,33,.25);text-underline-offset:4px}
 .plate-gh:hover{text-decoration-color:var(--earth)}
 .plate{padding-bottom:40px}
 .plate .p{font-size:12.5px;color:var(--ink-faint);letter-spacing:.08em;text-transform:uppercase;text-align:right}
 .plate[aria-current="true"] .p{color:var(--earth)}
 
+.credit{max-width:62ch;margin:-18px auto 0;padding:0 24px 56px;text-align:center;font-size:12.5px;line-height:1.6;color:var(--ink-faint)}
 .foot{font-size:11.5px;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--ink-faint);text-align:center;padding-bottom:44px}
 html:root{--ink-soft:rgba(43,39,33,.82);--ink-faint:rgba(43,39,33,.72)}
+html{overflow-x:clip}
+@media (max-width:640px){.plate{grid-template-columns:2.2em minmax(0,1fr);gap:4px 10px;padding:14px 2px 44px}.plate .p{grid-column:2;text-align:left;margin-top:2px}.plate .t{font-size:21px}.plate .t .res{font-size:14px}.sb-links{flex-wrap:wrap;gap:6px 20px}}
 @media (min-width:641px){
   .hero{align-content:start;padding-top:clamp(88px,9.5svh,112px)}
   .hero-kicker{margin:clamp(8px,1.2svh,14px) 0 clamp(6px,1svh,12px)}
@@ -524,6 +529,7 @@ html:root{--ink-soft:rgba(43,39,33,.82);--ink-faint:rgba(43,39,33,.72)}
 
   <div class="rule short" aria-hidden="true"></div>
   <p class="foot" id="contact">Boston, MA · <a href="mailto:bondalapati.b@northeastern.edu" target="_top" class="bio-link">bondalapati.b@northeastern.edu</a> · <a href="/" target="_top" class="bio-link">Back to the plain site</a></p>
+<p class="credit">The sketchbook page and its paper, ferns and flowers are ThreeUI's sketchbook (Copyright (c) 2026 Meng To, <a class="bio-link" href="https://github.com/MengTo/threeui" target="_blank" rel="noopener noreferrer">MIT licence</a>). Set in Instrument Serif and Newsreader (SIL Open Font License). Every plate is drawn from my own project figures or in code; the full notices are in <a class="bio-link" href="https://github.com/bhavishyabondalapati/portfolio/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener noreferrer">THIRD_PARTY_NOTICES.md</a>.</p>
 </main>
 
 <script>
@@ -538,18 +544,68 @@ const Q=new URLSearchParams(location.search);
 const DIR='pages/';
 const PAGES=[
   {
-    "file": "aerial-change-intelligence.png",
+    "file": "aerial-change-intelligence.webp",
     "result": "F1 0.898 change-detection accuracy on 128 unseen test pairs",
     "title": "Aerial Change Intelligence",
     "place": "Computer vision · GIS",
     "href": "https://github.com/bhavishyabondalapati/aerial-change-intelligence"
   },
   {
-    "file": "llm-gateway.png",
+    "file": "llm-gateway.webp",
     "result": "3,085 requests per second through the gateway, at 19.8 ms median latency",
     "title": "LLM Gateway",
     "place": "Backend · LLM infrastructure",
     "href": "https://github.com/bhavishyabondalapati/llm-gateway"
+  },
+  {
+    "file": "lexintake.webp",
+    "result": "1,768 / 1,782 fields extracted correctly on 248 held-out documents",
+    "title": "LexIntake",
+    "place": "LLM extraction · backend",
+    "href": "https://github.com/bhavishyabondalapati/lexintake"
+  },
+  {
+    "file": "reporag.webp",
+    "result": "Recall@5 0.96 on itsdangerous; 0.722 on a held-out set",
+    "title": "RepoRAG",
+    "place": "Retrieval-augmented generation",
+    "href": "https://github.com/bhavishyabondalapati/RepoRAG"
+  },
+  {
+    "file": "robot-arm-sim.webp",
+    "result": "46 / 50 unseen pick-and-place episodes completed",
+    "title": "Robot Arm Simulation",
+    "place": "Robotics · imitation learning",
+    "href": "https://github.com/bhavishyabondalapati/robot-arm-sim"
+  },
+  {
+    "file": "excel-copilot.webp",
+    "result": "120 tests; nothing is written without a confirmed preview",
+    "title": "Excel Copilot",
+    "place": "TypeScript · LLM tools",
+    "href": "https://github.com/bhavishyabondalapati/excel-copilot"
+  },
+  {
+    "file": "impactlens.webp",
+    "result": "F1 0.92 flood detection, against 0.87 for the best water-index baseline",
+    "title": "ImpactLens",
+    "place": "Geo-AI · agents on AWS",
+    "href": "https://github.com/bhavishyabondalapati/impactlens"
+  },
+  {
+    "file": "doc-intelligence-chatbot.webp",
+    "result": "Hit@1 up from 0.42 to 0.71 on 60 hand-labelled questions",
+    "title": "Document Intelligence Chatbot",
+    "place": "Coursework",
+    "href": "https://github.com/bhavishyabondalapati/doc-intelligence-chatbot"
+  },
+  {
+    "file": "kambaz.webp",
+    "result": "Courses, modules, assignments and enrollments, with my own Express and MongoDB API",
+    "title": "Kambaz LMS",
+    "place": "CS 5610 Web Development",
+    "href": "https://github.com/bhavishyabondalapati/kambaz-next-js",
+    "live": "https://kambaz-next-js-navy-sigma.vercel.app"
   }
 ];
 PAGES.forEach(p=>p.url=DIR+p.file);
@@ -659,7 +715,12 @@ function fill(p,i,link){
   p.textContent='';
   const t=el('span','ttl');t.textContent=PAGES[i].title;p.appendChild(t);
   const r=el('span','res');r.textContent=PAGES[i].result;p.appendChild(r);
-  if(link&&PAGES[i].href){const a=el('a','sb-gh');a.href=PAGES[i].href;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Code on GitHub ↗';p.appendChild(a);}
+  if(link&&PAGES[i].href){
+    const row=el('span','sb-links');
+    const a=el('a','sb-gh');a.href=PAGES[i].href;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Code on GitHub ↗';row.appendChild(a);
+    if(PAGES[i].live){const b=el('a','sb-gh');b.href=PAGES[i].live;b.target='_blank';b.rel='noopener noreferrer';b.textContent='Live site ↗';row.appendChild(b);}
+    p.appendChild(row);
+  }
 }
 function caption(){
   capBox.textContent='';
@@ -855,6 +916,7 @@ function goTo(i){
   if(Math.min(fwd,back)===1){step(fwd===1?'next':'prev');return;}
   idx=i;paint();
 }
+['sbLeft','sbRight','zOut','zIn','loupeBtn'].forEach(id=>{const b=document.getElementById(id);if(b)b.addEventListener('pointerdown',e=>e.stopPropagation());});
 document.getElementById('sbLeft').onclick=()=>step('prev');
 document.getElementById('sbRight').onclick=()=>step('next');
 addEventListener('keydown',e=>{
@@ -1008,8 +1070,11 @@ PAGES.forEach((p,i)=>{
   b.querySelector('.p').textContent=p.place;
   b.onclick=()=>{goTo(i);document.getElementById('sketchbook').scrollIntoView({behavior:'smooth',block:'center'});};
   li.appendChild(b);
+  const lk=el('span','plate-links');
   const g=el('a','plate-gh');g.href=p.href;g.target='_blank';g.rel='noopener noreferrer';g.textContent='Code on GitHub ↗';g.setAttribute('aria-label',p.title+': code on GitHub (opens in a new tab)');
-  li.appendChild(g);plateList.appendChild(li);
+  lk.appendChild(g);
+  if(p.live){const v=el('a','plate-gh');v.href=p.live;v.target='_blank';v.rel='noopener noreferrer';v.textContent='Live site ↗';v.setAttribute('aria-label',p.title+': live site (opens in a new tab)');lk.appendChild(v);}
+  li.appendChild(lk);plateList.appendChild(li);
 });
 function marks(){
   const cur=turn?turn.to:idx;

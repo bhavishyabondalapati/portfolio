@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { contact, coursework, earlierWork, featured, person, sketchbook } from "../../src/content.ts";
 
 const ROOT = new URL("../..", import.meta.url).pathname;
-const SRC = join(ROOT, "public/landing-pages");
+const SRC = join(ROOT, "scripts/sketchbook/source");   // ThreeUI's canonical page (hash e0330548b1ac), kept out of public/
 const OUT = join(ROOT, "public/sketchbook");
 mkdirSync(join(OUT, "decor"), { recursive: true });
 let s = readFileSync(join(SRC, "meng-to-sketchbook.html"), "utf8");
@@ -23,11 +23,12 @@ const lookup = (slug) => {
   const c = [...coursework, ...earlierWork].find((p) => p.slug === slug);
   if (!c) throw new Error("unknown plate " + slug);
   const code = c.links.find((l) => l.href.includes("github.com")) ?? c.links[0];
-  return { title: c.name, place: c.course ?? "Coursework", href: code.href };
+  const live = c.links.find((l) => /live/i.test(l.label));
+  return { title: c.name, place: c.course ?? "Coursework", href: code.href, ...(live ? { live: live.href } : {}) };
 };
 const plates = sketchbook.plates
-  .filter((p) => existsSync(join(OUT, "pages", p.slug + ".png")))
-  .map((p) => ({ file: p.slug + ".png", result: p.label, ...lookup(p.slug) }));
+  .filter((p) => existsSync(join(OUT, "pages", p.slug + ".webp")))
+  .map((p) => ({ file: p.slug + ".webp", result: p.label, ...lookup(p.slug) }));
 const ghRaw = (href) => href;
 rep(/const PAGES=\[[\s\S]*?\];\nPAGES\.forEach/.exec(s)[0], `const PAGES=${JSON.stringify(plates, null, 2)};\nPAGES.forEach`);
 rep("const DIR='meng-to-sketchbook/';", "const DIR='pages/';");
@@ -35,7 +36,7 @@ rep("LAND=6;", "LAND=0;");   // the book opens on my first plate
 
 // ---- decoration and fonts stay ThreeUI's (MIT): copied once, referenced from decor/
 for (const f of ["bg-wash.jpg", "bloom.png", "botany-left.png", "botany-right.png", "divider.png", "instrument-serif.woff2", "instrument-serif-italic.woff2", "newsreader.woff2"]) {
-  copyFileSync(join(SRC, "meng-to-sketchbook", f), join(OUT, "decor", f));
+  copyFileSync(join(SRC, "decor", f), join(OUT, "decor", f));
 }
 s = s.replaceAll("meng-to-sketchbook/", "decor/");
 
@@ -57,7 +58,10 @@ rep('<p class="section-label">Plates</p>', `<p class="section-label">${esc(sketc
 s = s.replace(/<p class="bio">[\s\S]*?<\/p>/, () => `<p class="bio">${esc(sketchbook.about)}</p>`);
 s = s.replace(/<p class="foot" id="contact">[\s\S]*?<\/p>/, () =>
   `<p class="foot" id="contact">${esc(person.location)} · <a href="mailto:${contact.email}" target="_top" class="bio-link">${esc(contact.email)}</a> · <a href="/" target="_top" class="bio-link">Back to the plain site</a></p>`);
-rep('aria-label="scroll to about"', 'aria-label="scroll to about"');
+// credits: the page and its decoration are ThreeUI's (MIT); the plates are mine
+rep('</main>', `<p class="credit">The sketchbook page and its paper, ferns and flowers are ThreeUI's sketchbook (Copyright (c) 2026 Meng To, <a class="bio-link" href="https://github.com/MengTo/threeui" target="_blank" rel="noopener noreferrer">MIT licence</a>). Set in Instrument Serif and Newsreader (SIL Open Font License). Every plate is drawn from my own project figures or in code; the full notices are in <a class="bio-link" href="https://github.com/bhavishyabondalapati/portfolio/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener noreferrer">THIRD_PARTY_NOTICES.md</a>.</p>
+</main>`);
+rep(".foot{font-size", `.credit{max-width:62ch;margin:-18px auto 0;padding:0 24px 56px;text-align:center;font-size:12.5px;line-height:1.6;color:var(--ink-faint)}\n.foot{font-size`);
 
 // ---- captions: title, then the key result on its own line, then the repo
 rep("capOut=el('p','sb-caption live');capOut.textContent=PAGES[turn.from].title;", "capOut=el('p','sb-caption live');fill(capOut,turn.from);");
@@ -67,7 +71,12 @@ rep("function caption(){", `function fill(p,i,link){
   p.textContent='';
   const t=el('span','ttl');t.textContent=PAGES[i].title;p.appendChild(t);
   const r=el('span','res');r.textContent=PAGES[i].result;p.appendChild(r);
-  if(link&&PAGES[i].href){const a=el('a','sb-gh');a.href=PAGES[i].href;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Code on GitHub ↗';p.appendChild(a);}
+  if(link&&PAGES[i].href){
+    const row=el('span','sb-links');
+    const a=el('a','sb-gh');a.href=PAGES[i].href;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Code on GitHub ↗';row.appendChild(a);
+    if(PAGES[i].live){const b=el('a','sb-gh');b.href=PAGES[i].live;b.target='_blank';b.rel='noopener noreferrer';b.textContent='Live site ↗';row.appendChild(b);}
+    p.appendChild(row);
+  }
 }
 function caption(){`);
 
@@ -77,24 +86,33 @@ rep(`  b.querySelector('.t').textContent=p.title;
   const rs=el('span','res');rs.textContent=p.result;tt.appendChild(rs);
   b.querySelector('.p').textContent=p.place;`);
 rep("li.appendChild(b);plateList.appendChild(li);", `li.appendChild(b);
+  const lk=el('span','plate-links');
   const g=el('a','plate-gh');g.href=p.href;g.target='_blank';g.rel='noopener noreferrer';g.textContent='Code on GitHub ↗';g.setAttribute('aria-label',p.title+': code on GitHub (opens in a new tab)');
-  li.appendChild(g);plateList.appendChild(li);`);
+  lk.appendChild(g);
+  if(p.live){const v=el('a','plate-gh');v.href=p.live;v.target='_blank';v.rel='noopener noreferrer';v.textContent='Live site ↗';v.setAttribute('aria-label',p.title+': live site (opens in a new tab)');lk.appendChild(v);}
+  li.appendChild(lk);plateList.appendChild(li);`);
 rep(".plate .p{", `.sb-caption{display:flex;flex-direction:column;align-items:center;gap:5px}
 .sb-caption .res{font-size:12.5px;letter-spacing:.01em;text-transform:none;color:var(--ink-faint);max-width:min(560px,86vw);text-align:center;line-height:1.4}
 .sb-gh{font-size:11px;letter-spacing:.14em;color:var(--earth);text-decoration:underline;text-decoration-color:rgba(43,39,33,.28);text-underline-offset:4px;pointer-events:auto;position:relative;z-index:80}
 .sb-gh:hover{text-decoration-color:var(--earth)}
 .plate-list li{position:relative}
 .plate .t .res{display:block;margin-top:4px;font-family:inherit;font-size:13.5px;line-height:1.45;color:var(--ink-faint);letter-spacing:0}
-.plate-gh{position:absolute;right:4px;bottom:14px;font-size:11.5px;letter-spacing:.1em;color:var(--earth);text-decoration:underline;text-decoration-color:rgba(43,39,33,.25);text-underline-offset:4px}
+.plate-links{position:absolute;right:4px;bottom:14px;display:flex;gap:20px}
+.sb-links{display:flex;gap:20px;justify-content:center}
+.plate-gh{font-size:11.5px;letter-spacing:.1em;color:var(--earth);text-decoration:underline;text-decoration-color:rgba(43,39,33,.25);text-underline-offset:4px}
 .plate-gh:hover{text-decoration-color:var(--earth)}
 .plate{padding-bottom:40px}
 .plate .p{`);
+
+// ---- the arrows sit inside the stage that starts a page-drag on pointerdown and captures the pointer, which sends the
+//      click to the stage instead of the button; the arrows now keep their own pointerdown, so every click works
+rep("document.getElementById('sbLeft').onclick=()=>step('prev');", "['sbLeft','sbRight','zOut','zIn','loupeBtn'].forEach(id=>{const b=document.getElementById(id);if(b)b.addEventListener('pointerdown',e=>e.stopPropagation());});\ndocument.getElementById('sbLeft').onclick=()=>step('prev');");
 
 // ---- layout: a bigger book, higher up, and a glass that rests clear of the notes
 rep("--earth:#9a6a3e;", "--earth:#7a4f2c;");
 rep("lx=b.x+b.w*0.88; ly=b.y+b.h*0.855;", "lx=b.x+b.w*0.93; ly=b.y+b.h*0.94;");
 // ThreeUI's typography recipe re-declares these two colours (at .58 and .36), so mine need more specificity: AA contrast for small grey text
-rep("</style>", `html:root{--ink-soft:rgba(43,39,33,.82);--ink-faint:rgba(43,39,33,.72)}
+rep("</style>", `html:root{--ink-soft:rgba(43,39,33,.82);--ink-faint:rgba(43,39,33,.72)}\nhtml{overflow-x:clip}\n@media (max-width:640px){.plate{grid-template-columns:2.2em minmax(0,1fr);gap:4px 10px;padding:14px 2px 44px}.plate .p{grid-column:2;text-align:left;margin-top:2px}.plate .t{font-size:21px}.plate .t .res{font-size:14px}.sb-links{flex-wrap:wrap;gap:6px 20px}}
 @media (min-width:641px){
   .hero{align-content:start;padding-top:clamp(88px,9.5svh,112px)}
   .hero-kicker{margin:clamp(8px,1.2svh,14px) 0 clamp(6px,1svh,12px)}

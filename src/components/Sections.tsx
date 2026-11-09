@@ -18,7 +18,7 @@ import {
 } from "@/content";
 import { formatCoords } from "@/lib/geo";
 import { PlateChart } from "./PlateChart";
-import { WalkButton } from "./Survey";
+import { SketchbookButton, WalkButton } from "./Survey";
 
 const ext = { rel: "noopener noreferrer", target: "_blank" } as const;
 
@@ -230,7 +230,10 @@ export function Sections() {
               <h3 id="invite-title">{survey.invite.title}</h3>
               <p>{survey.invite.text}</p>
             </div>
-            <WalkButton />
+            <div className="invite-actions">
+              <WalkButton />
+              <SketchbookButton />
+            </div>
           </aside>
         </div>
       </section>

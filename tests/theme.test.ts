@@ -12,6 +12,7 @@ test("the inline head script is valid JavaScript and sets the theme", () => {
 
 test("the plain site invites visitors to walk the Charles, and has no flyover left", () => {
   assert.equal(survey.invite.walkButton, "Walk the Charles");
+  assert.equal(survey.invite.sketchbookButton, "Open the sketchbook");
   assert.equal(survey.backLabel, "Back to the plain site");
   assert.equal("flight" in survey, false);
   assert.equal(JSON.stringify(survey).includes("Fly the survey"), false);

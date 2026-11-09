@@ -936,6 +936,13 @@ h1 span {
   border: 1.5px dashed var(--ink);
 }
 
+.invite-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
 .invite svg {
   width: 64px;
   height: 64px;
@@ -1160,6 +1167,10 @@ h1 span {
 
   .invite svg {
     display: none;
+  }
+
+  .invite-actions {
+    justify-content: flex-start;
   }
 
 }

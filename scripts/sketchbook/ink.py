@@ -136,5 +136,5 @@ def hatch(layer, x, y, w, h, gap=7, ang=-35, seed=0, alpha=150, wd=1.1):
 def finish(img, path):
     """Back to 1760x1240 (the spread is built at 2x), keep the transparent outside, save PNG."""
     out = img.resize((W, H), Image.LANCZOS)
-    out.save(path, optimize=True)
+    out.save(path.replace(".png", ".webp"), "WEBP", quality=92, method=6)   # WebP keeps the transparent outside and is ~10x smaller
     return out

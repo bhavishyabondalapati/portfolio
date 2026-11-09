@@ -1,5 +1,5 @@
 import { Sections } from "@/components/Sections";
-import { ThemeToggle, WalkButton } from "@/components/Survey";
+import { SketchbookButton, ThemeToggle, WalkButton } from "@/components/Survey";
 import { contact, featured, person, survey } from "@/content";
 import { formatCoords } from "@/lib/geo";
 
@@ -59,6 +59,7 @@ export default function Home() {
                   {person.heroAction.label}
                 </a>
                 <WalkButton />
+                <SketchbookButton />
               </div>
               <p className="hero-links">
                 <a href={`mailto:${contact.email}`}>Email</a>
