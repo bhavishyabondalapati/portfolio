@@ -19,7 +19,7 @@
   --ink-soft:rgba(43,39,33,.58);
   --ink-faint:rgba(43,39,33,.36);
   --hairline:rgba(43,39,33,.14);
-  --earth:#9a6a3e;
+  --earth:#7a4f2c;
   --display:'Instrument Serif',"New York",Georgia,'Times New Roman',serif;
   --font:'Newsreader',"New York",Georgia,'Times New Roman',serif;
   --track-caps:.24em;
@@ -429,6 +429,14 @@ button{font:inherit}
 
 .foot{font-size:11.5px;letter-spacing:var(--track-caps);text-transform:uppercase;
   color:var(--ink-faint);text-align:center;padding-bottom:44px}
+html:root{--ink-soft:rgba(43,39,33,.82);--ink-faint:rgba(43,39,33,.72)}
+@media (min-width:641px){
+  .hero{align-content:start;padding-top:clamp(88px,9.5svh,112px)}
+  .hero-kicker{margin:clamp(8px,1.2svh,14px) 0 clamp(6px,1svh,12px)}
+  .sb-3d{max-width:min(1280px,calc(100vw - 96px))}
+  .sb-stage{margin-top:-8vw}
+  .sb-captions{margin-top:-8.5vw}
+}
 </style>
 </head>
 <body>
@@ -881,7 +889,7 @@ function bookBox(){
 /* park it on the desk at the lower right, half off the book */
 function restLoupe(){
   const b=bookBox();
-  lx=b.x+b.w*0.88; ly=b.y+b.h*0.855;
+  lx=b.x+b.w*0.93; ly=b.y+b.h*0.94;
   placeLoupe();
 }
 /* The glass sits above the tilt, in the book's untransformed pixels, so the

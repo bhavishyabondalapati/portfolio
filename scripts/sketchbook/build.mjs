@@ -90,5 +90,18 @@ rep(".plate .p{", `.sb-caption{display:flex;flex-direction:column;align-items:ce
 .plate{padding-bottom:40px}
 .plate .p{`);
 
+// ---- layout: a bigger book, higher up, and a glass that rests clear of the notes
+rep("--earth:#9a6a3e;", "--earth:#7a4f2c;");
+rep("lx=b.x+b.w*0.88; ly=b.y+b.h*0.855;", "lx=b.x+b.w*0.93; ly=b.y+b.h*0.94;");
+// ThreeUI's typography recipe re-declares these two colours (at .58 and .36), so mine need more specificity: AA contrast for small grey text
+rep("</style>", `html:root{--ink-soft:rgba(43,39,33,.82);--ink-faint:rgba(43,39,33,.72)}
+@media (min-width:641px){
+  .hero{align-content:start;padding-top:clamp(88px,9.5svh,112px)}
+  .hero-kicker{margin:clamp(8px,1.2svh,14px) 0 clamp(6px,1svh,12px)}
+  .sb-3d{max-width:min(1280px,calc(100vw - 96px))}
+  .sb-stage{margin-top:-8vw}
+  .sb-captions{margin-top:-8.5vw}
+}
+</style>`);
 writeFileSync(join(OUT, "sketchbook.html"), s);
 console.log(`wrote public/sketchbook/sketchbook.html with ${plates.length} plate(s): ${plates.map((p) => p.title).join(", ")}`);

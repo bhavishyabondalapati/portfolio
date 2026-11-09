@@ -22,8 +22,12 @@ def paste_print(base, path, xy, width, rot=0, seed=0, tape=True, border=10, size
     ratio = im.height / im.width
     w = int(width * S); h = int(width * ratio * S)
     im = im.resize((w, h), Image.LANCZOS)
-    # a little paper-print softness and warmth, so it sits in the page
-    im = ImageChops.multiply(im, Image.new("RGB", im.size, (252, 247, 238)))
+    # tone it like a real print taped into a sketchbook: less saturated, a warm paper tint, a touch softer, still readable
+    from PIL import ImageEnhance
+    im = ImageEnhance.Color(im).enhance(0.72)
+    im = ImageEnhance.Contrast(im).enhance(0.93)
+    im = Image.blend(im, Image.new("RGB", im.size, (240, 224, 196)), 0.16)           # warm cream wash over the ink
+    im = ImageChops.multiply(im, Image.new("RGB", im.size, (252, 245, 232)))          # paper tint
     b = border * S
     card = Image.new("RGBA", (w + 2 * b, h + 2 * b), (253, 250, 244, 255))
     card.paste(im, (b, b))
