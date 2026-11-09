@@ -27,3 +27,6 @@ docs/wow-assets/originals/
 docs/wow-assets/cut/
 docs/wow-assets/shots/
 docs/sketchbook-preview/
+
+test-results/
+playwright-report/
