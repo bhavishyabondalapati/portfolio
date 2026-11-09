@@ -1,0 +1,8 @@
+#!/bin/sh
+# Runs before every `git push`: types, unit and link tests, a fresh build, then the browser click test
+# on desktop and phone sizes (about 8 minutes). A failure stops the push.
+# To skip once (not recommended): git push --no-verify
+cd "$(git rev-parse --show-toplevel)" || exit 1
+echo "pre-push: running npm run check"
+if command -v conda >/dev/null 2>&1; then RUN="conda run -n portfolio --no-capture-output"; else RUN=""; fi
+$RUN npm run check || { echo "pre-push: checks failed, push stopped"; exit 1; }

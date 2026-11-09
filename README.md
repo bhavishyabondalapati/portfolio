@@ -74,6 +74,10 @@ scripts/make-house.py, house-*    A record of how the Boston page was made from 
 tests/content.test.ts             Content rules: no phone number, plate order, figures match results
 tests/geo.test.ts                 Coordinate label formats
 tests/theme.test.ts               The theme script, and that the invitation offers Boston only
+tests/links.test.ts               Static link checks for the plain site, Boston and the sketchbook
+e2e/clicks.spec.ts                Browser click test: every link, button and arrow on /, /boston and /sketchbook, desktop and phone sizes
+playwright.config.ts              Playwright settings: the two screen sizes, and serving the built site on port 4173
+.githooks/pre-push                Runs `npm run check` before every push and stops the push if anything fails
 
 docs/                             Content notes, the project-list and Boston proposals, photo credits and manifest
 ```
@@ -120,7 +124,16 @@ Tests and type checks:
 ```bash
 npm test
 npm run typecheck
+npm run build && npm run test:e2e   # the browser click test (needs the built site)
 ```
+
+`npm run check` runs all of it in order. Turn on the pre-push guard once per clone, so it runs before every `git push`:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+First time only, download the test browser: `npx playwright install chromium`. To click through the live site instead of the local build: `BASE_URL=https://your-site.vercel.app npm run test:e2e`. Outside addresses (GitHub and so on) are answered with an empty page, so the test works offline and never touches them.
 
 To redo the photographs (needs the licensed originals in `docs/wow-assets/originals/`, which are not in git):
 
