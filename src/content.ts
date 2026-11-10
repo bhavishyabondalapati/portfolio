@@ -61,6 +61,8 @@ export type ListedProject = {
   oneLine: string;
   stack: string[];
   href: string;
+  /** The deployed site, when there is one. Shown as a "Live site" link after the line. */
+  live?: string;
 };
 
 const GH = "https://github.com/bhavishyabondalapati";
@@ -416,6 +418,13 @@ export const earlierWork: SecondaryProject[] = [
 export const inProgress: { name: string; oneLine: string; href: string }[] = [];
 
 export const otherWork: ListedProject[] = [
+  {
+    name: "Hang",
+    oneLine: "Discover and curate public-domain Chinese art from three museum collections.",
+    stack: ["Next.js", "TypeScript", "Postgres (Neon)", "Drizzle", "Auth.js", "transformers.js"],
+    href: `${GH}/hang`,
+    live: "https://hang-dusky.vercel.app",
+  },
   {
     name: "Facial expression recognition",
     oneLine: "Soft labels from 10 annotators matched hard-label accuracy (82.5 to 82.9%) and cut KL divergence to human votes by 59 to 78%.",

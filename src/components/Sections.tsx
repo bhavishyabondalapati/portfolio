@@ -156,8 +156,8 @@ export function Sections() {
   const earlier = [...(srmProject ? [srmProject] : []), ...earlierWork];
   // one line per project: earlier work first, then the smaller builds
   const gazetteer = [
-    ...earlier.map((e) => ({ name: e.name, oneLine: e.oneLine, href: e.links[0]?.href })),
-    ...otherWork.map((o) => ({ name: o.name, oneLine: o.oneLine, href: o.href })),
+    ...earlier.map((e) => ({ name: e.name, oneLine: e.oneLine, href: e.links[0]?.href, live: undefined as string | undefined })),
+    ...otherWork.map((o) => ({ name: o.name, oneLine: o.oneLine, href: o.href, live: o.live })),
   ];
   return (
     <>
@@ -275,7 +275,17 @@ export function Sections() {
                   <tr key={o.name}>
                     <td className="mono">G-{String(i + 1).padStart(2, "0")}</td>
                     <th scope="row">{o.href ? <a href={o.href} {...ext}>{o.name}</a> : o.name}</th>
-                    <td>{o.oneLine}</td>
+                    <td>
+                      {o.oneLine}
+                      {o.live && (
+                        <>
+                          {" · "}
+                          <a href={o.live} {...ext}>
+                            Live site
+                          </a>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
