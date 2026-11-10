@@ -426,6 +426,19 @@ export const otherWork: ListedProject[] = [
     live: "https://hang-dusky.vercel.app",
   },
   {
+    name: "T-Minus",
+    oneLine: "Live Boston commute countdown: real MBTA arrivals and NWS weather turned into one leave-by time, with every prediction checked against the real arrival.",
+    stack: ["Next.js", "TypeScript", "Postgres (Neon)", "SSE", "ThreeUI"],
+    href: `${GH}/t-minus`,
+    live: "https://t-minus-drab.vercel.app",
+  },
+  {
+    name: "Stratum",
+    oneLine: "LSM-tree key-value store in pure Python (WAL, skip list, SSTables, Bloom filters, compaction): 100 SIGKILLs with no acknowledged write lost, 120K writes/s at 1M keys.",
+    stack: ["Python", "asyncio", "RESP"],
+    href: `${GH}/stratum`,
+  },
+  {
     name: "Facial expression recognition",
     oneLine: "Soft labels from 10 annotators matched hard-label accuracy (82.5 to 82.9%) and cut KL divergence to human votes by 59 to 78%.",
     stack: ["PyTorch", "ResNet18", "OpenCV"],
